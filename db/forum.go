@@ -90,11 +90,12 @@ func SelectForumInfo(slug string, isUid bool) (Forum, error) {
 
 func SelectForumUsers(slug string, limit int32, since string, desc bool) ([]User, error) {
 	sqlStatement := `
-  SELECT u.uid, u.nickname, u.name, u.about, u.email FROM profile u
+  SELECT u.uid, u.nickname, u.full_name, u.about, u.email FROM profile u
   JOIN post p ON (p.user_id = u.uid)
   JOIN forum f ON (p.forum_id = f.uid)
   WHERE f.title = $1 ORDER BY u.nickname`
 	rows, err := DB.Query(sqlStatement, slug)
+	fmt.Println(sqlStatement, slug)
 	if err != nil {
 		fmt.Println("forum haven't users")
 		return nil, err
