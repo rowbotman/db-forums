@@ -5,17 +5,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"time"
 )
 
 type Post struct {
-	Uid      int64      `json:"uid,omitempty"`
-	ParentId NullString `json:"parent,omitempty"`
-	Author   string     `json:"author,omitempty"`
-	Message  NullString `json:"message,omitempty"`
-	Forum    string     `json:"forum,omitempty"`
-	ThreadId int64      `json:"thread,omitempty"`
-	IsEdited bool       `json:"isEdited,omitempty"`
-	Created  NullTime   `json:"created, omitempty"`
+	Uid      int64     `json:"id,omitempty"`
+	ParentId int       `json:"parent,omitempty"`
+	Author   string    `json:"author,omitempty"`
+	Message  string    `json:"message,omitempty"`
+	Forum    string    `json:"forum,omitempty"`
+	ThreadId int64     `json:"thread,omitempty"`
+	IsEdited bool      `json:"isEdited,omitempty"`
+	Created  time.Time `json:"created, omitempty"`
 }
 
 
@@ -52,7 +53,7 @@ func UpdatePost(data DataForUpdPost) (Post, error) {
 	}
 
 	fmt.Println("New post message")
-	_ = post.Message.Scan(data.Message)
+	post.Message = data.Message
 	post.IsEdited = true
 	return post, nil
 }

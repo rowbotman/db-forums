@@ -11,14 +11,25 @@ import (
 	"strconv"
 )
 
-func forumCreate(w http.ResponseWriter,req *http.Request) {
+func forumCreate(w http.ResponseWriter, req *http.Request) {
+	fmt.Println("new form creation is starting...")
 	var data db.DataForNewForum
-	_= json.NewDecoder(req.Body).Decode(&data)
+	_ = json.NewDecoder(req.Body).Decode(&data)
 	forum, err := db.InsertIntoForum(data)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		fmt.Println(forum)
+		if len(forum.Slug) > 0 {
+			w.Header().Set("content-type", "application/json")
+			w.WriteHeader(http.StatusConflict)
+			_ = json.NewEncoder(w).Encode(forum)
+			return
+		}
+		Get404(w, err.Error())
 		return
 	}
+	fmt.Println(forum)
+	w.Header().Set("content-type", "application/json")
+	w.WriteHeader(http.StatusCreated)
 	_ = json.NewEncoder(w).Encode(forum)
 }
 
@@ -33,6 +44,10 @@ func forumGetInfo(w http.ResponseWriter,req *http.Request) {
 	log.Println(forumSlug)
 	forum, err := db.SelectForumInfo(forumSlug, false)
 	if err != nil {
+		if len(forum.Slug) > 0 {
+			Get404(w, err.Error())
+			return
+		}
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -40,11 +55,13 @@ func forumGetInfo(w http.ResponseWriter,req *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+	w.Header().Set("content-type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(js)
 }
 
 func forumGetUsers(w http.ResponseWriter, req *http.Request) {
-	// users := select id, firstName, lastName, email from User JOIN forum on (forum.user_id = u.id) where forum.id = req.id;
+	fmt.Println("get forum users is starting...")
 	params := mux.Vars(req)
 	slugOrId, _ := params["slug"]
 	var err error
@@ -83,7 +100,7 @@ func forumGetUsers(w http.ResponseWriter, req *http.Request) {
 }
 
 func forumGetThreads(w http.ResponseWriter,req *http.Request) {
-	// threads := select id, title, slug, author from thread t JOIN forum f on (forum.user_id = t.id) where forum.id = req.id;
+	fmt.Println("get threads from forum...")
 	params := mux.Vars(req)
 	slugOrId, _ := params["slug"]
 	var err error
@@ -107,6 +124,10 @@ func forumGetThreads(w http.ResponseWriter,req *http.Request) {
 	users, err := db.SelectForumThreads(slugOrId, int32(limit), since, desc)
 
 	if err != nil {
+		if users != nil && len(users[0].Slug) > 0 {
+			Get404(w, err.Error())
+			return
+		}
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -122,6 +143,7 @@ func forumGetThreads(w http.ResponseWriter,req *http.Request) {
 }
 
 func forumCreateThread(w http.ResponseWriter,req *http.Request) {
+	fmt.Println("thread creation is starting...")
 	params := mux.Vars(req)
 	slugOrId, _ := params["slug"]
 	data := db.ThreadInfo{}
@@ -137,27 +159,74 @@ func forumCreateThread(w http.ResponseWriter,req *http.Request) {
 		http.Error(w, err.Error(), 500)
 		return
 	}
-	err = db.InsertIntoThread(slugOrId, &data)
+	isMin := false
+	if len(data.Slug) == 0 {
+		isMin = true
+		data.Slug = slugOrId
+	}
+	fmt.Println("len data slug is ", len(data.Slug), data)
+	thread, err := db.InsertIntoThread(slugOrId, data)
 	if err != nil {
+		if  err.Error() == "thread exist" {
+			output := []byte{}
+			if isMin {
+				output, err = json.Marshal(db.ThreadInfoMin{
+					Uid:     thread.Uid,
+					Title:   thread.Title,
+					Author:  thread.Author,
+					Forum:   thread.Forum,
+					Message: thread.Message,
+					Created: thread.Created})
+			} else {
+				output, err = json.Marshal(thread)
+			}
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			w.Header().Set("content-type", "application/json")
+			w.WriteHeader(http.StatusConflict)
+			_, _ = w.Write(output)
+			return
+		}
+		
+		if thread.Uid < 0 {
+			Get404(w, err.Error())
+			return
+		}
+
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	output, err := json.Marshal(data)
+	fmt.Println("thread id is ", thread.Uid)
+	output := []byte{}
+	if isMin {
+		output, err = json.Marshal(db.ThreadInfoMin{
+			Uid:     thread.Uid,
+			Title:   thread.Title,
+			Author:  thread.Author,
+			Forum:   thread.Forum,
+			Message: thread.Message,
+			Created: thread.Created})
+	} else {
+		output, err = json.Marshal(thread)
+	}
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("content-type", "application/json")
+	w.WriteHeader(http.StatusCreated)
 	_, _ = w.Write(output)
 }
 
 
 func ForumHandler(router **mux.Router) {
-	(*router).HandleFunc("/api/forum/create/",         forumCreate).Methods("POST")
-	(*router).HandleFunc("/api/forum/{slug}/details/", forumGetInfo).Methods("GET")
-	(*router).HandleFunc("/api/forum/{slug}/create/",  forumCreateThread).Methods("POST")
-	(*router).HandleFunc("/api/forum/{slug}/users/",   forumGetUsers).Methods("GET")
-	(*router).HandleFunc("/api/forum/{slug}/threads/", forumGetThreads).Methods("GET")
+	(*router).HandleFunc("/api/forum/create",         forumCreate).Methods("POST")
+	(*router).HandleFunc("/api/forum/{slug}/details", forumGetInfo).Methods("GET")
+	(*router).HandleFunc("/api/forum/{slug}/create",  forumCreateThread).Methods("POST")
+	(*router).HandleFunc("/api/forum/{slug}/users",   forumGetUsers).Methods("GET")
+	(*router).HandleFunc("/api/forum/{slug}/threads", forumGetThreads).Methods("GET")
 }
 
