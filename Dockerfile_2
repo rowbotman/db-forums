@@ -1,0 +1,7 @@
+FROM ubuntu:16.04
+RUN apt-get update
+RUN apt-get install -y zip golang-go ghp-import git python-pkg-resources
+RUN go get github.com/gorilla/mux
+COPY * /usr/src/app/
+EXPOSE 5000
+CMD ["go run", "."]
