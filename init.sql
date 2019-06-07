@@ -1,6 +1,13 @@
--- CREATE DATABASE park_forum WITH OWNER = postgres;
+--CREATE DATABASE park_forum WITH OWNER = postgres;
 
 CREATE EXTENSION IF NOT EXISTS CITEXT;
+
+CREATE EXTENSION IF NOT EXISTS CITEXT;
+TRUNCATE TABLE profile CASCADE;
+TRUNCATE TABLE forum CASCADE;
+TRUNCATE TABLE thread CASCADE;
+TRUNCATE TABLE vote CASCADE;
+TRUNCATE TABLE post CASCADE;
 
 DROP TABLE IF EXISTS profile CASCADE;
 DROP TABLE IF EXISTS forum CASCADE;
@@ -8,8 +15,7 @@ DROP TABLE IF EXISTS thread CASCADE;
 DROP TABLE IF EXISTS post CASCADE;
 DROP TABLE IF EXISTS vote CASCADE;
 -- DROP TABLE IF EXISTS  CASCADE;
-
--- CREATE ROLE park_forum;
+--CREATE ROLE park_forum;
 
 CREATE TABLE IF NOT EXISTS profile
 (
@@ -37,7 +43,7 @@ CREATE TABLE IF NOT EXISTS thread
   forum_id INT NOT NULL,
   title    VARCHAR(128)                NOT NULL CHECK ( title <> '' ),
   slug     VARCHAR(128) UNIQUE         NOT NULL,
-  message  VARCHAR(512)                NOT NULL,
+  message  VARCHAR(2048)               NOT NULL,
   created  TIMESTAMP(0) WITH TIME ZONE NOT NULL DEFAULT current_timestamp,
   votes    INT                         NOT NULL DEFAULT 0,
 
@@ -73,8 +79,8 @@ CREATE TABLE IF NOT EXISTS vote
   FOREIGN KEY (thread_id) REFERENCES post    (uid) ON DELETE CASCADE
 );
 
-GRANT ALL PRIVILEGES ON DATABASE park_forum TO park_forum;--why we granted privileges to park_forum if
-                                                          --db owner is postgres?
-GRANT USAGE ON SCHEMA public TO park_forum;
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO park_forum;
-GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO park_forum;
+-- GRANT ALL PRIVILEGES ON DATABASE park_forum TO park_forum;--why we granted privileges to park_forum if
+--                                                           --db owner is postgres?
+-- GRANT USAGE ON SCHEMA public TO park_forum;
+-- GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO park_forum;
+-- GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO park_forum;

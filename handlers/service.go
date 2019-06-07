@@ -34,6 +34,6 @@ func serviceGetInfo(w http.ResponseWriter,req *http.Request) {
 }
 
 func ServiceHandler(router **mux.Router) {
-	(*router).HandleFunc("/api/service/clear/", serviceDrop).Methods("POST")
-	(*router).HandleFunc("/api/service/status/", serviceGetInfo).Methods("GET")
+	(*router).HandleFunc("/api/service/clear", serviceDrop).Methods("POST")
+	(*router).HandleFunc("/api/service/status", serviceGetInfo).Methods("GET")
 }

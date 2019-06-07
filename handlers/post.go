@@ -7,21 +7,13 @@ import (
 	"github.com/gorilla/mux"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 func postChangeInfo(w http.ResponseWriter, req *http.Request) {
+	fmt.Println("post update is starting")
 	var data db.DataForUpdPost
 	_= json.NewDecoder(req.Body).Decode(&data)
-	forum, err := db.UpdatePost(data)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	_ = json.NewEncoder(w).Encode(forum)
-}
-
-func PostGetInfo(w http.ResponseWriter,req *http.Request) {
-	fmt.Println("search post...")
 	params := mux.Vars(req)
 	id := int64(0)
 	if postId, ok := params["id"]; !ok {
@@ -29,22 +21,72 @@ func PostGetInfo(w http.ResponseWriter,req *http.Request) {
 	} else {
 		id, _ = strconv.ParseInt(postId, 10, 64)
 	}
+	data.Id = id
+	fmt.Println(data)
+	forum, err := db.UpdatePost(data)
+	if err != nil {
+		if forum.Uid == -1  {
+			Get404(w, err.Error())
+			return
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	fmt.Println("RESULT SET\n", forum)
+	output, err := json.Marshal(forum)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	//_ = json.NewEncoder(w).Encode(forum)
+	w.Header().Set("content-type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(output)
+}
 
+func PostGetInfo(w http.ResponseWriter,req *http.Request) {
+	fmt.Println("search post...")
+	params := mux.Vars(req)
+	id := int64(0)
 	var err error
+	if postId, ok := params["id"]; !ok {
+		http.Error(w, "Can't parse id", http.StatusBadRequest)
+		return
+	} else {
+		id, err = strconv.ParseInt(postId, 10, 64)
+		if err !=  nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
 	_ = req.ParseForm() // parses request body and query and stores result in r.Form
 	var array []string
-	for i := 0;; i++ {
-		key := fmt.Sprintf("related[%d]", i)
-		values := req.Form[key] // form values are a []string
-		if len(values) == 0 {
-			// no more values
-			break
-		}
-		array = append(array, values[i])
-		i++
-	}
+	//if related := req.URL.Query().Get("related"); len(related) > 0 {
+	//	array = append(array, related)
+	//}
+
+	array = strings.Split(req.FormValue("related"), ",")
+	fmt.Println(array)
+	//for i := 0;; i++ {
+	//	key := fmt.Sprintf("related[%d]", i)
+	//	values := req.Form[key] // form values are a []string
+	//	if len(values) == 0 {
+	//		no more values
+	//		break
+	//	}
+	//	array = append(array, values[i])
+	//	i++
+	//}
 	details, err := db.GetPostInfo(id, array)
 	if err != nil {
+		if details["err"] == true {
+			Get404(w, err.Error())
+			//w.Header().Set("content-type", "application/json")
+			//w.WriteHeader(http.StatusNotFound)
+			//_ = json.NewEncoder(w).Encode(NotFoundPage{err.Error()})
+			return
+		}
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -56,11 +98,12 @@ func PostGetInfo(w http.ResponseWriter,req *http.Request) {
 	}
 
 	w.Header().Set("content-type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(output)
 }
 
 func PostHandler(router **mux.Router) {
 	fmt.Println("post handler")
-	(*router).HandleFunc("/api/post/{id}/details/", postChangeInfo).Methods("POST")
-	(*router).HandleFunc("/api/post/{id}/details/", PostGetInfo).Methods("GET")
+	(*router).HandleFunc("/api/post/{id}/details", postChangeInfo).Methods("POST")
+	(*router).HandleFunc("/api/post/{id}/details", PostGetInfo).Methods("GET")
 }
