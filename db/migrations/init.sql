@@ -2,13 +2,13 @@
 
 CREATE EXTENSION IF NOT EXISTS CITEXT;
 
-DROP TABLE    IF EXISTS profile          CASCADE;
-DROP TABLE    IF EXISTS forum            CASCADE;
-DROP TABLE    IF EXISTS thread           CASCADE;
-DROP TABLE    IF EXISTS post             CASCADE;
 DROP TABLE    IF EXISTS vote             CASCADE;
-DROP TRIGGER  IF EXISTS t_vote                   ON vote;
-DROP TRIGGER  IF EXISTS t_post                   ON post;
+DROP TABLE    IF EXISTS post             CASCADE;
+DROP TABLE    IF EXISTS thread           CASCADE;
+DROP TABLE    IF EXISTS forum            CASCADE;
+DROP TABLE    IF EXISTS profile          CASCADE;
+DROP TRIGGER  IF EXISTS t_vote           ON vote;
+DROP TRIGGER  IF EXISTS t_post           ON post;
 DROP FUNCTION IF EXISTS add_to_thread();
 DROP FUNCTION IF EXISTS add_path();
 -- DROP TABLE IF EXISTS  CASCADE;
@@ -17,10 +17,10 @@ DROP FUNCTION IF EXISTS add_path();
 
 CREATE TABLE IF NOT EXISTS profile
 (
-  uid       SERIAL                                            PRIMARY KEY,
-  nickname  CITEXT  UNIQUE      NOT NULL CHECK (nickname <> ''),
+  uid       SERIAL                                              PRIMARY KEY,
+  nickname  CITEXT       UNIQUE NOT NULL CHECK (nickname <> ''),
   full_name VARCHAR(128)        NOT NULL CHECK (nickname <> ''),
-  about     VARCHAR(512)                                    DEFAULT '',
+  about     VARCHAR(512)                                         DEFAULT '',
   email     VARCHAR(256) UNIQUE NOT NULL CHECK (email <> '')
 --   email     CITEXT UNIQUE       NOT NULL CHECK (email <> '')
 );
@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS forum
 
 CREATE TABLE IF NOT EXISTS thread
 (
-  uid      SERIAL                                           PRIMARY KEY,
+  uid      SERIAL                                            PRIMARY KEY,
   user_id  INT                         NOT NULL,
   forum_id INT                         NOT NULL,
   title    VARCHAR(128)                NOT NULL CHECK ( title <> '' ),
