@@ -9,15 +9,7 @@ import (
 	"net/http"
 )
 
-//type User struct{
-//	ID        string `json:"id,omitempty"`
-//	FirstName string `json:"firstName,omitempty"`
-//	LastName  string `json:"lastName,omitempty"`
-//}
-
-
 func userGet(w http.ResponseWriter, req *http.Request) {
-	fmt.Println("getting user profile... \n")
 	params := mux.Vars(req)
 	nickname, ok := params["nickname"]
 	if !ok {
@@ -28,11 +20,6 @@ func userGet(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		Get404(w, "Can't find user by nickname: " + nickname)
 		return
-		//w.Header().Set("Content-Type", "application/json")
-		//w.WriteHeader(http.StatusNotFound)
-		//
-		//http.Error(w, "incorrect slug", http.StatusBadRequest)
-		//return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -40,7 +27,6 @@ func userGet(w http.ResponseWriter, req *http.Request) {
 }
 
 func userCreate(w http.ResponseWriter,req *http.Request) {
-	fmt.Println("user create function")
 	params := mux.Vars(req)
 	body, err := ioutil.ReadAll(req.Body)
 	defer req.Body.Close()
@@ -69,7 +55,6 @@ func userCreate(w http.ResponseWriter,req *http.Request) {
 			w.WriteHeader(http.StatusConflict)
 			_, err = w.Write(output)
 			if err != nil {
-				fmt.Println("writing failed")
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}
 			return
@@ -80,19 +65,17 @@ func userCreate(w http.ResponseWriter,req *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
+
 	output, err := json.Marshal(newUser[0])
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	fmt.Println(string(output) + "\n")
 	_, err = w.Write(output)
 	if err != nil {
-		fmt.Println("writing failed")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
-
 }
 
 func userPost(w http.ResponseWriter, req *http.Request) {
@@ -104,6 +87,7 @@ func userPost(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), 500)
 		return
 	}
+
 	data := db.User{}
 	data.Nickname = nickname
 	err = json.Unmarshal(body, &data)
@@ -111,8 +95,7 @@ func userPost(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), 500)
 		return
 	}
-	fmt.Println(data)
-	fmt.Println()
+
 	user, err := db.UpdateUser(data)
 	if err != nil {
 		w.Header().Set("content-type", "application/json")
@@ -125,7 +108,6 @@ func userPost(w http.ResponseWriter, req *http.Request) {
 		_ = json.NewEncoder(w).Encode(NotFoundPage{err.Error()})
 		return
 	}
-	fmt.Println(user)
 	output, err := json.Marshal(user)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -136,9 +118,8 @@ func userPost(w http.ResponseWriter, req *http.Request) {
 	_, _ = w.Write(output)
 }
 
-
 func UserHandler(router **mux.Router) {
-	fmt.Println("user handler initialized")
+	fmt.Println("user handlers initialized")
 	(*router).HandleFunc("/api/user/{nickname}/create",  userCreate)
 	(*router).HandleFunc("/api/user/{nickname}/profile", userGet).Methods("GET")
 	(*router).HandleFunc("/api/user/{nickname}/profile", userPost).Methods("POST")

@@ -3,7 +3,6 @@ package db
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 )
 
 type User struct {
@@ -25,25 +24,19 @@ func (us *User)IsEmpty() bool {
 func InsertIntoUser(userData User) ([]User, error) {
 	var users []User
 	sqlStatement := `SELECT full_name, nickname, email, about FROM profile WHERE LOWER(nickname) = LOWER($1) OR LOWER(email) = LOWER($2);`
-	fmt.Println(sqlStatement)
 	rows, err := DB.Query(sqlStatement, userData.Nickname, userData.Email)
 	if err != nil && !rows.Next() {
 		sqlStatement = `INSERT INTO profile VALUES (default, $1, $2, $3, $4);`
-		fmt.Println("request error")
-		fmt.Println(sqlStatement)
 
 		_, err = DB.Exec(sqlStatement, userData.Nickname, userData.Name, userData.About, userData.Email)
-
 		if err != nil {
-			fmt.Println("error with insertion")
-			fmt.Println(err.Error())
 			return nil, err
 		}
-		fmt.Println("insertion complete")
-		fmt.Println(rows)
+
 		users = append(users, userData)
 		return users, nil
 	}
+
 	for rows.Next() {
 		newUser := User{}
 		err = rows.Scan(
@@ -51,7 +44,6 @@ func InsertIntoUser(userData User) ([]User, error) {
 			&newUser.Nickname,
 			&newUser.Email,
 			&newUser.About)
-		fmt.Println("i am alive")
 		if err != nil {
 			// handle this error
 			// but i did't know how to do this .-.
@@ -62,18 +54,12 @@ func InsertIntoUser(userData User) ([]User, error) {
 
 	if len(users) == 0 {
 		sqlStatement = `INSERT INTO profile VALUES (default, $1, $2, $3, $4);`
-		fmt.Println("request error")
-		fmt.Println(sqlStatement)
 
 		_, err = DB.Exec(sqlStatement, userData.Nickname, userData.Name, userData.About, userData.Email)
-
 		if err != nil {
-			fmt.Println("error with insertion")
-			fmt.Println(err.Error())
 			return nil, err
 		}
-		fmt.Println("insertion complete")
-		fmt.Println(rows)
+
 		users = append(users, userData)
 		return users, nil
 	}
@@ -82,7 +68,6 @@ func InsertIntoUser(userData User) ([]User, error) {
 }
 
 func SelectUser(nickname string) (User, error) {
-	fmt.Println("SELECT uid, full_name, nickname, email, about FROM profile WHERE nickname = ", nickname)
 	sqlStatement := `SELECT uid, full_name, nickname, email, about FROM profile WHERE nickname = $1`
 	row := DB.QueryRow(sqlStatement, nickname)
 	newUser := User{}
@@ -93,18 +78,15 @@ func SelectUser(nickname string) (User, error) {
 		&newUser.Email,
 		&newUser.About)
 	if err == sql.ErrNoRows {
-		fmt.Println("No rows were returned!")
 		return User{}, errors.New("no rows")
 	} else if err != nil {
-		fmt.Println("errors occurred")
 		return User{}, err
 	}
-	fmt.Println("request complete, user is", newUser)
+
 	return newUser, nil
 }
 
 func UpdateUser(updUser User) (User, error) {
-	fmt.Println("update user is starting...")
 	sqlStatement := `
   SELECT full_name, nickname, email FROM profile WHERE LOWER(email) = LOWER($1);`
 	row := DB.QueryRow(sqlStatement, updUser.Email)
@@ -113,7 +95,6 @@ func UpdateUser(updUser User) (User, error) {
 		&user.Name,
 		&user.Nickname,
 		&user.Email)
-	fmt.Println(user)
 	if err == sql.ErrNoRows || user.Nickname == updUser.Nickname {
 		if updUser.IsEmpty() {
 			userInfo, err := SelectUser(updUser.Nickname)
@@ -122,6 +103,7 @@ func UpdateUser(updUser User) (User, error) {
 			}
 			return userInfo, nil
 		}
+
 		userInfo, err := SelectUser(updUser.Nickname)
 		if err != nil {
 			return User{}, err
@@ -135,13 +117,15 @@ func UpdateUser(updUser User) (User, error) {
 		if len(updUser.Email) == 0 {
 			updUser.Email = userInfo.Email
 		}
+
 		sqlStatement = `UPDATE profile SET full_name = $1, email = $2, about = $3 WHERE nickname = $4;`
 		_, err = DB.Exec(sqlStatement, updUser.Name, updUser.Email, updUser.About, updUser.Nickname)
 		if err != nil {
 			return User{}, err
 		}
+
 		return updUser, nil
 	}
-	fmt.Println("i am return exist user")
+
 	return updUser, errors.New("This email is already registered by user: " + user.Nickname)
 }

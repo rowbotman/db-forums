@@ -3,7 +3,6 @@ package db
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"strconv"
 	"time"
 )
@@ -30,7 +29,6 @@ func UpdatePost(data DataForUpdPost) (Post, error) {
   FROM post p JOIN profile u ON (p.user_id = u.uid) JOIN forum f ON (p.forum_id = f.uid)
   WHERE p.uid = $1 GROUP BY p.uid, u.nickname, f.slug;`
 	row := DB.QueryRow(sqlStatement, data.Id)
-	fmt.Println(sqlStatement, data.Id)
 	post := Post{}
 	isEdited := false
 	err := row.Scan(
@@ -43,7 +41,6 @@ func UpdatePost(data DataForUpdPost) (Post, error) {
 		&post.ThreadId,
 		&post.Created)
 	if err == sql.ErrNoRows {
-		fmt.Println("No rows were returned!")
 		ret := Post{}
 		ret.Uid = -1
 		return ret, errors.New("Can't find post with id: " + strconv.FormatInt(data.Id, 10))
@@ -57,16 +54,10 @@ func UpdatePost(data DataForUpdPost) (Post, error) {
 			if err != nil {
 				return Post{}, err
 			}
-			fmt.Println("New post message")
 			post.Message = data.Message
-			fmt.Println(isEdited, post.IsEdited)
 			post.IsEdited = true
 		}
-		//if isEdited {
-		//	post.IsEdited = true
-		//}
 	}
-	fmt.Println(post)
 	return post, nil
 }
 
@@ -78,10 +69,8 @@ func GetPostInfo(postId int64, strArray []string) (map[string]interface{}, error
   FROM post p JOIN profile u ON (p.user_id = u.uid) JOIN forum f ON (p.forum_id = f.uid)
   WHERE p.uid = $1 GROUP BY p.uid, p.parent_id, u.nickname, f.slug, f.uid;`
 	row := DB.QueryRow(sqlStatement, postId)
-	fmt.Println(sqlStatement, postId)
 	post := Post{}
 	forumId := int(0)
-	//isEdited := false
 	err := row.Scan(
 		&post.Uid,
 		&post.ParentId,
@@ -94,16 +83,11 @@ func GetPostInfo(postId int64, strArray []string) (map[string]interface{}, error
 		&post.Created)
 	fullInfo := threadInfo{}
 	if err == sql.ErrNoRows {
-		fmt.Println("No rows were returned!")
 		fullInfo["err"] = true
 		return fullInfo, errors.New("Can't find post with id: " + strconv.FormatInt(postId, 10))
 	} else if err != nil {
 		return threadInfo{}, err
 	}
-	//if isEdited {
-	//	post.IsEdited = true
-	//}
-	fmt.Println(post)
 	fullInfo["post"] = post
 	for _, obj := range strArray {
 		switch obj {
@@ -116,10 +100,8 @@ func GetPostInfo(postId int64, strArray []string) (map[string]interface{}, error
 		}
 		case "forum": {
 			id := strconv.Itoa(int(forumId))
-			fmt.Println(id)
 			forumData, err := SelectForumInfo(id, true)
 			if err != nil {
-				fmt.Println(err.Error())
 				return threadInfo{}, err
 			}
 			fullInfo["forum"] = forumData

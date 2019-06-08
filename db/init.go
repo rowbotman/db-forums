@@ -118,15 +118,6 @@ func (nt *NullTime) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-
-//func InitDB(config string) *sql.DB {
-//
-//	db, err := sql.Open("postgres", config)
-//	if err != nil {
-//		log.Fatal(err)
-//	}
-//	return db
-//}
 var DB *sql.DB
 
 func InitDB(dataSourceName string) *sql.DB {

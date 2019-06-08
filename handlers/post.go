@@ -11,7 +11,6 @@ import (
 )
 
 func postChangeInfo(w http.ResponseWriter, req *http.Request) {
-	fmt.Println("post update is starting")
 	var data db.DataForUpdPost
 	_= json.NewDecoder(req.Body).Decode(&data)
 	params := mux.Vars(req)
@@ -22,7 +21,6 @@ func postChangeInfo(w http.ResponseWriter, req *http.Request) {
 		id, _ = strconv.ParseInt(postId, 10, 64)
 	}
 	data.Id = id
-	fmt.Println(data)
 	forum, err := db.UpdatePost(data)
 	if err != nil {
 		if forum.Uid == -1  {
@@ -32,20 +30,17 @@ func postChangeInfo(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	fmt.Println("RESULT SET\n", forum)
 	output, err := json.Marshal(forum)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	//_ = json.NewEncoder(w).Encode(forum)
 	w.Header().Set("content-type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(output)
 }
 
 func PostGetInfo(w http.ResponseWriter,req *http.Request) {
-	fmt.Println("search post...")
 	params := mux.Vars(req)
 	id := int64(0)
 	var err error
@@ -62,29 +57,11 @@ func PostGetInfo(w http.ResponseWriter,req *http.Request) {
 
 	_ = req.ParseForm() // parses request body and query and stores result in r.Form
 	var array []string
-	//if related := req.URL.Query().Get("related"); len(related) > 0 {
-	//	array = append(array, related)
-	//}
-
 	array = strings.Split(req.FormValue("related"), ",")
-	fmt.Println(array)
-	//for i := 0;; i++ {
-	//	key := fmt.Sprintf("related[%d]", i)
-	//	values := req.Form[key] // form values are a []string
-	//	if len(values) == 0 {
-	//		no more values
-	//		break
-	//	}
-	//	array = append(array, values[i])
-	//	i++
-	//}
 	details, err := db.GetPostInfo(id, array)
 	if err != nil {
 		if details["err"] == true {
 			Get404(w, err.Error())
-			//w.Header().Set("content-type", "application/json")
-			//w.WriteHeader(http.StatusNotFound)
-			//_ = json.NewEncoder(w).Encode(NotFoundPage{err.Error()})
 			return
 		}
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -103,7 +80,7 @@ func PostGetInfo(w http.ResponseWriter,req *http.Request) {
 }
 
 func PostHandler(router **mux.Router) {
-	fmt.Println("post handler")
+	fmt.Println("posts handlers initialized")
 	(*router).HandleFunc("/api/post/{id}/details", postChangeInfo).Methods("POST")
 	(*router).HandleFunc("/api/post/{id}/details", PostGetInfo).Methods("GET")
 }

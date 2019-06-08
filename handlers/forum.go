@@ -12,12 +12,10 @@ import (
 )
 
 func forumCreate(w http.ResponseWriter, req *http.Request) {
-	fmt.Println("new form creation is starting...")
 	var data db.DataForNewForum
 	_ = json.NewDecoder(req.Body).Decode(&data)
 	forum, err := db.InsertIntoForum(data)
 	if err != nil {
-		fmt.Println(forum)
 		if len(forum.Slug) > 0 {
 			w.Header().Set("content-type", "application/json")
 			w.WriteHeader(http.StatusConflict)
@@ -27,14 +25,12 @@ func forumCreate(w http.ResponseWriter, req *http.Request) {
 		Get404(w, err.Error())
 		return
 	}
-	fmt.Println(forum)
 	w.Header().Set("content-type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	_ = json.NewEncoder(w).Encode(forum)
 }
 
 func forumGetInfo(w http.ResponseWriter,req *http.Request) {
-	fmt.Println("in forum get info")
 	params := mux.Vars(req)
 	forumSlug, ok := params["slug"]
 	if !ok {
@@ -61,7 +57,6 @@ func forumGetInfo(w http.ResponseWriter,req *http.Request) {
 }
 
 func forumGetUsers(w http.ResponseWriter, req *http.Request) {
-	fmt.Println("get forum users is starting...")
 	params := mux.Vars(req)
 	slugOrId, _ := params["slug"]
 	var err error
@@ -102,7 +97,6 @@ func forumGetUsers(w http.ResponseWriter, req *http.Request) {
 }
 
 func forumGetThreads(w http.ResponseWriter,req *http.Request) {
-	fmt.Println("get threads from forum...")
 	params := mux.Vars(req)
 	slugOrId, _ := params["slug"]
 	var err error
@@ -145,7 +139,6 @@ func forumGetThreads(w http.ResponseWriter,req *http.Request) {
 }
 
 func forumCreateThread(w http.ResponseWriter,req *http.Request) {
-	fmt.Println("thread creation is starting...")
 	params := mux.Vars(req)
 	slugOrId, _ := params["slug"]
 	data := db.ThreadInfo{}
@@ -166,7 +159,6 @@ func forumCreateThread(w http.ResponseWriter,req *http.Request) {
 		isMin = true
 		data.Slug = slugOrId
 	}
-	fmt.Println("len data slug is ", len(data.Slug), data)
 	thread, err := db.InsertIntoThread(slugOrId, data)
 	if err != nil {
 		if  err.Error() == "thread exist" {
@@ -200,7 +192,6 @@ func forumCreateThread(w http.ResponseWriter,req *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	fmt.Println("thread id is ", thread.Uid)
 	output := []byte{}
 	if isMin {
 		output, err = json.Marshal(db.ThreadInfoMin{
@@ -225,6 +216,7 @@ func forumCreateThread(w http.ResponseWriter,req *http.Request) {
 
 
 func ForumHandler(router **mux.Router) {
+	fmt.Println("forums handlers initialized")
 	(*router).HandleFunc("/api/forum/create",         forumCreate).Methods("POST")
 	(*router).HandleFunc("/api/forum/{slug}/details", forumGetInfo).Methods("GET")
 	(*router).HandleFunc("/api/forum/{slug}/create",  forumCreateThread).Methods("POST")

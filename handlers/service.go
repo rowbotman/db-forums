@@ -3,6 +3,7 @@ package handlers
 import (
 	"../db"
 	"encoding/json"
+	"fmt"
 	"github.com/gorilla/mux"
 	"net/http"
 )
@@ -34,6 +35,7 @@ func serviceGetInfo(w http.ResponseWriter,req *http.Request) {
 }
 
 func ServiceHandler(router **mux.Router) {
+	fmt.Println("services handlers initialized")
 	(*router).HandleFunc("/api/service/clear", serviceDrop).Methods("POST")
 	(*router).HandleFunc("/api/service/status", serviceGetInfo).Methods("GET")
 }

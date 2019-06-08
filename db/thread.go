@@ -3,7 +3,6 @@ package db
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"strconv"
 	"time"
 )
@@ -69,10 +68,8 @@ func isThreadExist(slugOrId string) (Thread, bool) {
 		&thread.UserId,
 		&thread.Created)
 	if err != nil || id < 0 {
-		fmt.Println("Thread didn`t exist")
 		return Thread{}, false
 	}
-
 	return thread, true
 }
 
@@ -80,13 +77,9 @@ func isParentPost(parentId int, thread int64) (ok bool) {
 	sqlStatement := `SELECT p.thread_id FROM post p WHERE p.uid = $1;`
 	threadId := int64(0)
 	err := DB.QueryRow(sqlStatement, parentId).Scan(&threadId)
-	fmt.Println(sqlStatement, parentId)
-	fmt.Println(thread, threadId)
 	if err != nil && parentId != 0{
 		return false
 	}
-	fmt.Println(threadId, thread)
-	fmt.Println(threadId == thread || threadId == 0)
 	return threadId == thread || threadId == 0
 }
 
@@ -104,35 +97,28 @@ func InsertNewPosts(slugOrId string, posts []Post) ([]Post, error) {
 		return []Post{{-1, 0, "-", "-", "-", 0, false, time}},
 			errors.New("Can't find post thread by id: " + slugOrId)
 	}
-	fmt.Println("thread", thread.Uid, "exists")
 	sqlStatement := `INSERT INTO post VALUES (default, $6, array[0], $1, $2, $3, $4, default, $5) RETURNING uid`
 
 	updPosts := []Post{}
 	for _, post := range posts {
 		userData, err := SelectUser(post.Author)
 		if err != nil {
-			fmt.Println("user", post.Author, "did not exist\n Aborting")
 			return []Post{{-1, 0, "-", "-", "-", 0, false, time}},
 			errors.New("Can't find post author by nickname:" + post.Author)
 		}
 		ok := isParentPost(post.ParentId, thread.Uid)
-		fmt.Println(ok)
 		if !ok {
 			return posts, errors.New("Parent post was created in another thread")
 		}
 		row := DB.QueryRow(sqlStatement, thread.ForumId, userData.Pk, thread.Uid, post.Message, time, post.ParentId)
 		err = row.Scan(&post.Uid)
 		if err == sql.ErrNoRows {
-			fmt.Println("No rows were returned!")
 			return nil, err
 		} else if err != nil {
 			return nil, err
 		}
-		fmt.Println(post.ParentId)
-		//post.ParentId = 0
-		//post.Created = time
-		post.ThreadId = thread.Uid
 
+		post.ThreadId = thread.Uid
 		sqlForPostData := `
   SELECT f.slug, p.created FROM post p
   JOIN forum f ON (p.forum_id = f.uid)
@@ -142,14 +128,13 @@ func InsertNewPosts(slugOrId string, posts []Post) ([]Post, error) {
 			&post.Forum,
 			&post.Created)
 		if err == sql.ErrNoRows {
-			fmt.Println("No rows were returned!")
 			return nil, nil
 		} else if err != nil {
 			return nil, err
 		}
-
 		updPosts = append(updPosts, post)
 	}
+
 	return updPosts, nil
 }
 
@@ -181,7 +166,6 @@ func SelectFromThread(slugOrId string, isId bool) (ThreadInfo, error) {
 		&thread.Created,
 		&thread.Slug)
 	if err == sql.ErrNoRows {
-		fmt.Println("No, rows were returned!")
 		return ThreadInfo{-1, "", "", "", "", 0, "", time.Now()},
 			errors.New("Can't find thread by slug: " + slugOrId)
 	} else if err != nil {
@@ -218,43 +202,29 @@ func UpdateThread(slugOrId string, thread *ThreadInfo) error {
 		var err error
 		switch status {
 		case 1: {
-			fmt.Println(1)
 			_, err = DB.Exec(sqlStatement, thread.Title, existThread.Uid)
 			break
 		}
 		case 2: {
-			fmt.Println(1)
 			_, err = DB.Exec(sqlStatement, thread.Title, thread.Message, existThread.Uid)
 			break
 		}
 		case 3: {
-			fmt.Println(1)
 			_, err = DB.Exec(sqlStatement, thread.Message, existThread.Uid)
 			break
 		}
 		default:
-			fmt.Println("something got error in switch")
 		}
-		//_, err := DB.Exec(sqlStatement, thread.Title, thread.Message, existThread.Uid)
-		fmt.Println(sqlStatement, existThread.Uid)
 		if err != nil {
-			fmt.Println(err.Error())
 			return err
 		}
 	}
 
-	//thread.Uid = existThread.Uid
-	//thread.Created = existThread.Created
-	//thread.Author = existThread.
-	//existThread.Title = thread.Title
-	//existThread.Message = thread.Message
-
 	threadInfo, err := SelectFromThread(existThread.Slug, false)
-	fmt.Println("thread info: ", threadInfo)
 	if err != nil {
 		return err
 	}
-	fmt.Println(threadInfo)
+
 	(*thread).Author = threadInfo.Author
 	(*thread).Created = threadInfo.Created
 	(*thread).Uid = threadInfo.Uid
@@ -262,32 +232,28 @@ func UpdateThread(slugOrId string, thread *ThreadInfo) error {
 	(*thread).Slug = threadInfo.Slug
 	(*thread).Message = threadInfo.Message
 	(*thread).Title = threadInfo.Title
-
 	return nil
 }
 
 
 func SelectThreadPosts(slugOrid string, limit int32, since int64, sort string, desc bool) ([]Post, error) {
-	fmt.Println("select thread posts staring and since = ", since)
 	_, err := strconv.ParseInt(slugOrid, 10, 64)
 	isId := true
 	if err != nil {
 		isId = false
 	}
+
 	thread, err := SelectFromThread(slugOrid, isId)
 	if err != nil && thread.Uid == -1 {
 		return []Post{{-1, 0, "", "", "", 0, false,  time.Now()}}, err
 	}
+
 	sqlStatement := `SELECT p.uid, p.parent_id, u.nickname,
        p.message, p.is_edited, f.slug,
        p.thread_id, p.created FROM post p
     JOIN forum   AS f ON (f.uid = p.forum_id)
 	JOIN profile AS u ON (u.uid = p.user_id)
 	JOIN thread  AS t ON (t.uid = p.thread_id)`
-
-	//if since > 0 {
-	//	sqlStatement += ` AND p.path && array[:p.uid]`
-	//}
 
 	var rows *sql.Rows
 	switch sort {
@@ -296,15 +262,11 @@ func SelectThreadPosts(slugOrid string, limit int32, since int64, sort string, d
 			sqlStatement += ` WHERE t.uid = $1 AND p.path `
 			if since == 0 {
 				sqlStatement += ` >= `
-				//since = 1
-				//if since == 0 {
 				sqlReq := `select min(uid) from post`
 				err = DB.QueryRow(sqlReq).Scan(&since)
 				if err != nil {
-					fmt.Println(err.Error(), sqlReq)
 					since = 1
 				}
-				//}
 			} else {
 				sqlStatement += ` < `
 			}
@@ -316,7 +278,6 @@ func SelectThreadPosts(slugOrid string, limit int32, since int64, sort string, d
 				sqlReq := `select min(uid) from post`
 				err = DB.QueryRow(sqlReq).Scan(&since)
 				if err != nil {
-					fmt.Println(err.Error(), sqlReq)
 					since = 1
 					}
 			} else {
@@ -331,17 +292,14 @@ func SelectThreadPosts(slugOrid string, limit int32, since int64, sort string, d
 		}
 		sqlStatement += ` LIMIT $3;`
 		rows, err = DB.Query(sqlStatement, thread.Uid, since, limit)
-		fmt.Println(sqlStatement, thread.Uid, since, limit)
 	}
 	case "parent_tree": {
 		strLimit := strconv.FormatInt(int64(limit), 10)
-
 		sqlStatement += `WHERE path[1] IN (
 		SELECT pst.uid FROM post AS pst
 		JOIN thread AS td ON (pst.thread_id = td.uid)
 		WHERE td.uid = $1 AND pst.parent_id = 0 `
 		if since > 0 {
-			//sqlStatement += ` AND pst.uid `
 			if desc {
 				sqlStatement += ` AND pst.uid < `
 			} else {
@@ -350,25 +308,17 @@ func SelectThreadPosts(slugOrid string, limit int32, since int64, sort string, d
 			sqlStatement += ` (SELECT path[1] FROM post WHERE uid = $2) `
 		}
 
-		//if desc {
-		//	sqlStatement += ` ORDER BY pst.uid DESC LIMIT ` + strLimit + `)`
-		//} else {
-		//	sqlStatement += ` ORDER BY pst.uid ASC  LIMIT ` + strLimit + `)`
-		//}
-		//sqlStatement += `ORDER BY pst.uid LIMIT ` + strLimit + `) `
 		if desc {
 			sqlStatement += `ORDER BY pst.uid DESC LIMIT ` + strLimit + `) ORDER BY p.path[1] DESC, p.path;`
 		} else {
 			sqlStatement += `ORDER BY pst.uid LIMIT ` + strLimit + `) ORDER BY path;`
 		}
+
 		if since > 0 {
 			rows, err = DB.Query(sqlStatement, thread.Uid, since)
-			fmt.Println(sqlStatement, thread.Uid, since)
 		} else {
 			rows, err = DB.Query(sqlStatement, thread.Uid)
-			fmt.Println(sqlStatement, thread.Uid)
 		}
-
 	}
 	default: {
 		if desc {
@@ -376,24 +326,17 @@ func SelectThreadPosts(slugOrid string, limit int32, since int64, sort string, d
 			if since > 0 {
 				sqlStatement += ` AND p.uid < $2 ORDER BY p.created DESC, p.uid DESC LIMIT $3`
 				rows, err = DB.Query(sqlStatement, thread.Uid, since, limit)
-				fmt.Println(sqlStatement, thread.Uid, since, limit)
 			} else {
 				sqlStatement += `ORDER BY p.created DESC, p.uid DESC LIMIT $2`
 				rows, err = DB.Query(sqlStatement, thread.Uid, limit)
-				fmt.Println(sqlStatement, thread.Uid, limit)
 			}
 		} else {
 			sqlStatement += ` WHERE t.uid = $1 AND p.uid > $2 ORDER BY p.created, p.uid ASC LIMIT $3;`
-			//sqlStatement += ` LIMIT $3;`
 			rows, err = DB.Query(sqlStatement, thread.Uid, since, limit)
-			fmt.Println(sqlStatement, thread.Uid, since, limit)
 		}
-
 	}
 	}
-	//fmt.Println(sqlStatement, thread.Uid, since, limit)
 	if err != nil {
-		fmt.Println("thread haven`t posts")
 		return nil, err
 	}
 	defer rows.Close()
@@ -410,16 +353,12 @@ func SelectThreadPosts(slugOrid string, limit int32, since int64, sort string, d
 			&newPost.ThreadId,
 			&newPost.Created)
 		if err != nil {
-			fmt.Println("posts select error")
 			return nil, err
 		}
-		fmt.Println("get new post", newPost)
 		posts = append(posts, newPost)
 	}
-	// get any error encountered during iteration
 	err = rows.Err()
 	if err != nil {
-		fmt.Println("error occurred in select posts")
 		return nil, err
 	}
 	return posts, nil
@@ -434,7 +373,6 @@ func UpdateVote(slugOrId string, vote VoteInfo) (ThreadInfo, error) {
 		thread, err = SelectFromThread(slugOrId, true)
 	}
 	if err != nil {
-		fmt.Println("thread did not exist")
 		return ThreadInfo{-1, "-", "-", "", "", 0, "", time.Now()},
 		errors.New("Can't find thread by slug: " + slugOrId)
 	}
@@ -445,46 +383,34 @@ func UpdateVote(slugOrId string, vote VoteInfo) (ThreadInfo, error) {
 	if err != nil {
 		return ThreadInfo{-1, "-", "-", "", "", 0, "", time.Now()},
 			errors.New("Can't find user by nickname: " + vote.Nickname)
-		//return ThreadInfo{}, errors.New("Can't find user by nickname: " + vote.Nickname)
 	}
 
 	sqlGetVotes := `SELECT "value", is_edited FROM vote WHERE user_id = $1 AND thread_id = $2;`
 	value := int(0)
 	isEdited := false
 	err = DB.QueryRow(sqlGetVotes, userId, thread.Uid).Scan(&value, &isEdited)
-	fmt.Println("user vote:", value)
 	if err == sql.ErrNoRows {
 		sqlStatement := `
 	INSERT INTO vote (user_id, thread_id, "value") VALUES ($1, $2, $3)`
-		fmt.Println(sqlStatement, userId, thread.Uid, vote.Voice)
 		_, err  = DB.Exec(sqlStatement, userId, thread.Uid, vote.Voice)
 		if err != nil {
 			return ThreadInfo{}, err
 		}
 		thread.Votes += vote.Voice
-		fmt.Println("all votes: ", thread.Votes)
 		return thread, nil
 	} else if err != nil {
 		return ThreadInfo{}, err
 	}
 	if (value > 0 && vote.Voice > 0) ||
 		(value < 0 && vote.Voice < 0) {
-		fmt.Println("all votes: ", thread.Votes)
 		return thread, nil
 	}
 
 	sqlVote := `UPDATE vote SET "value" = $1, is_edited = true WHERE user_id = $2 AND thread_id = $3;`
-	fmt.Println(sqlVote, vote.Voice, userId, thread.Uid)
 	_, err  = DB.Exec(sqlVote, vote.Voice, userId, thread.Uid)
 	if err != nil {
 		return ThreadInfo{}, err
 	}
 	thread.Votes += vote.Voice * 2
-	fmt.Println("all votes: ", thread.Votes)
 	return thread, nil
-
-	//sqlStatement := `
-	//INSERT INTO vote (user_id, thread_id, "value")
-	//SELECT p.uid, $1, $2 FROM profile p, get_thread WHERE p.nickname = $3;`
 }
-

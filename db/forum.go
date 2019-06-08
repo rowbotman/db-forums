@@ -3,7 +3,6 @@ package db
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"strconv"
 )
 
@@ -22,16 +21,12 @@ type DataForNewForum struct {
 }
 
 func InsertIntoForum(data DataForNewForum) (DataForNewForum, error) {
-	fmt.Println("insert into forum is starting...")
 	sqlStatement := `SELECT u.uid, u.nickname FROM profile u WHERE u.nickname = $1;`
-	fmt.Println("SELECT u.uid FROM profile u WHERE u.nickname = " + data.Nickname)
 	row := DB.QueryRow(sqlStatement, data.Nickname)
 	authorId := 0
 	nickname := ""
 	err := row.Scan(&authorId, &nickname)
-	fmt.Println("authorId == ", authorId)
 	if err == sql.ErrNoRows {
-		fmt.Println("No rows were returned!")
 		return DataForNewForum{}, errors.New("Can't find user with nickname: " + data.Nickname)
 	} else if err != nil {
 		return DataForNewForum{}, err
@@ -44,26 +39,16 @@ func InsertIntoForum(data DataForNewForum) (DataForNewForum, error) {
 			existForum.User,
 			existForum.Slug}, errors.New("slug exist")
 	}
-	fmt.Println("INSERT INTO forum (default, title, author_id, slug) VALUES (", data.Title, authorId, data.Slug, ");")
 	sqlStatement = `INSERT INTO forum (title, author_id, slug) VALUES ($1, $2, $3);`
 	_, err = DB.Exec(sqlStatement, data.Title, authorId, data.Slug)
 	if err != nil {
 		return DataForNewForum{}, err
 	}
 
-	fmt.Println("New forum slug:", data.Slug)
 	return data, nil
-	//return Forum{
-	//	data.Title,
-	//	data.Nickname,
-	//	data.Slug,
-	//	0,
-	//	0,
-	//}, nil
 }
 
 func SelectForumInfo(slug string, isUid bool) (Forum, error) {
-	fmt.Println("\n select forum info starting...")
 	var forum Forum
 	sqlStatement1 := `
 SELECT f.uid, f.title, f.slug, COUNT(p.uid) FROM forum f 
@@ -83,7 +68,6 @@ LEFT JOIN profile p ON (p.uid = f.author_id) WHERE `
 		}
 
 		row = DB.QueryRow(sqlStatement1, id)
-		fmt.Println(sqlStatement1, id)
 		err = row.Scan(
 			&id,
 			&forum.Title,
@@ -94,7 +78,6 @@ LEFT JOIN profile p ON (p.uid = f.author_id) WHERE `
 		}
 
 		row = DB.QueryRow(sqlStatement2, id)
-		fmt.Println(sqlStatement2, id)
 		err = row.Scan(
 			&id,
 			&forum.User,
@@ -109,7 +92,6 @@ LEFT JOIN profile p ON (p.uid = f.author_id) WHERE `
 		sqlStatement2 += `LOWER(f.slug) = LOWER($1) GROUP BY f.uid, p.nickname;`
 
 		id := int64(0)
-		fmt.Println(sqlStatement1, slug)
 
 		row = DB.QueryRow(sqlStatement1, slug)
 		err := row.Scan(
@@ -117,24 +99,20 @@ LEFT JOIN profile p ON (p.uid = f.author_id) WHERE `
 			&forum.Title,
 			&forum.Slug,
 			&forum.Posts)
-		fmt.Println(forum)
 		if err != nil {
 			return Forum{Slug: slug}, errors.New("Can't find forum by slug: " + slug)
 		}
 
-		fmt.Println(sqlStatement2, slug)
 		row = DB.QueryRow(sqlStatement2, slug)
 		err = row.Scan(
 			&id,
 			&forum.User,
 			&forum.Threads)
-		fmt.Println(forum)
 
 		if err != nil {
 			return Forum{}, err
 		}
 	}
-	fmt.Println(forum)
 	return forum, nil
 }
 
@@ -142,12 +120,10 @@ func SelectForumUsers(slug string, limit int32, since string, desc bool) ([]User
 	sqlStatement := `SELECT uid FROM forum WHERE LOWER(slug) = LOWER($1);`
 	forumId := int64(0)
 	err := DB.QueryRow(sqlStatement, slug).Scan(&forumId)
-	fmt.Println(sqlStatement, slug)
 	if err != nil {
-		//[]User{{0, "-", "-", "-", "-"}}
 		return nil, errors.New("Can't find forum by slug: " + slug)
 	}
-	sqlSelect := `SELECT u.uid, u.nickname, u.full_name, u.about, u.email FROM profile u`
+	sqlSelect := `SELECT u.uid, u.nickname, u.full_name, u.about, u.email FROM profile u` // TODO: убрать лишний sqlStatement
 	sqlStatement = `
 SELECT * FROM (
 ` + sqlSelect + `JOIN thread t ON (t.user_id = u.uid) WHERE t.forum_id = $1 
@@ -180,18 +156,15 @@ SELECT * FROM (
 	} else {
 		sqlStatement += ` LIMIT $2;`
 	}
-	fmt.Println(sqlStatement, forumId, since, limit)
 	var rows *sql.Rows
 	if len(since) > 0 {
 		rows, err = DB.Query(sqlStatement, forumId, since, limit)
 		if err != nil {
-			fmt.Println("forum haven't users")
 			return nil, err
 		}
 	} else {
 		rows, err = DB.Query(sqlStatement, forumId, limit)
 		if err != nil {
-			fmt.Println("forum haven't users")
 			return nil, err
 		}
 	}
@@ -220,15 +193,11 @@ SELECT * FROM (
 }
 
 func SelectForumThreads(slug string, limit int32, since string, desc bool) ([]ThreadInfo, error) {
-	fmt.Println("select forum threads is starting...")
 	sqlStatement := `SELECT title FROM forum WHERE LOWER(slug) = LOWER($1)`
-
-	fmt.Println(sqlStatement + slug)
 	row := DB.QueryRow(sqlStatement, slug)
 	forum := ""
 	err := row.Scan(&forum)
 	if err == sql.ErrNoRows {
-		fmt.Println("No rows were returned!")
 		return []ThreadInfo{{Slug: slug}}, errors.New("Can't find forum by slug: " + slug)
 	} else if err != nil {
 		return nil, err
@@ -248,8 +217,6 @@ func SelectForumThreads(slug string, limit int32, since string, desc bool) ([]Th
 		} else {
 			sqlStatement += ` AND t.created >= $2 ORDER BY t.created ASC  LIMIT $3;`
 		}
-
-		fmt.Println(sqlStatement, slug, since, limit)
 		rows, err = DB.Query(sqlStatement, slug, since, limit)
 	} else {
 		if desc {
@@ -257,12 +224,9 @@ func SelectForumThreads(slug string, limit int32, since string, desc bool) ([]Th
 		} else {
 			sqlStatement += ` ORDER BY t.created ASC  LIMIT $2;`
 		}
-		fmt.Println(sqlStatement, slug, limit)
 		rows, err = DB.Query(sqlStatement, slug, limit)
-
 	}
 	if err != nil {
-		fmt.Println("error with thread")
 		return nil, err
 	}
 	defer rows.Close()
@@ -279,7 +243,6 @@ func SelectForumThreads(slug string, limit int32, since string, desc bool) ([]Th
 			&thread.Slug,
 			&thread.Created)
 		if err != nil {
-			fmt.Println("errors occurred in get threads from forum")
 			return nil, err
 		}
 		threads = append(threads, thread)
@@ -292,34 +255,26 @@ func SelectForumThreads(slug string, limit int32, since string, desc bool) ([]Th
 }
 
 func InsertIntoThread(slug string, threadData ThreadInfo) (ThreadInfo, error) {
-	fmt.Println(threadData.Slug)
-	fmt.Println()
-
 	sqlStatement := `SELECT p.uid FROM profile p WHERE p.nickname = $1;`
-	fmt.Println(sqlStatement, threadData.Author)
-
 	row := DB.QueryRow(sqlStatement, threadData.Author)
 	authorId := int64(0)
 	err := row.Scan(&authorId)
 	if err == sql.ErrNoRows {
-		fmt.Println("No rows were returned!")
 		return ThreadInfo{Uid: -1}, errors.New("Can't find thread author by nickname: " + threadData.Author)
 	} else if err != nil {
 		return ThreadInfo{}, err
 	}
 
 	sqlStatement = `SELECT f.uid, f.slug FROM forum f WHERE LOWER(f.slug) = LOWER($1);`
-	fmt.Println(sqlStatement, slug)
-
 	row = DB.QueryRow(sqlStatement, slug)
 	forum := int64(0)
 	err = row.Scan(&forum, &threadData.Forum)
 	if err == sql.ErrNoRows {
-		fmt.Println("No rows were returned!")
 		return ThreadInfo{Uid: -1}, errors.New("Can't find thread forum by slug: " + slug)
 	} else if err != nil {
 		return ThreadInfo{}, err
 	}
+
 	existThread, ok := isThreadExist(threadData.Slug)
 	if ok {
 		threadData.Title = existThread.Title
@@ -331,7 +286,6 @@ func InsertIntoThread(slug string, threadData ThreadInfo) (ThreadInfo, error) {
 WITH get_name AS (
     SELECT nickname FROM profile WHERE uid = $1
 ) SELECT slug, nickname FROM forum, get_name WHERE uid = $2`
-		fmt.Println(sqlStatement, existThread.UserId, existThread.ForumId)
 		err := DB.QueryRow(
 			sqlStatement,
 			existThread.UserId,
@@ -339,13 +293,11 @@ WITH get_name AS (
 				&threadData.Forum,
 				&threadData.Author)
 		if err != nil {
-			fmt.Println("this cool request didn't success")
 			return threadData, nil
 		}
 		return threadData, errors.New("thread exist")
 	}
 	sqlStatement = `INSERT INTO thread VALUES(default, $1, $2, $3, $4, $5, $6, default) RETURNING uid;`
-	fmt.Println(sqlStatement, authorId, forum, threadData.Title, threadData.Slug, threadData.Message, threadData.Created)
 	err = DB.QueryRow(
 		sqlStatement,
 		authorId,
@@ -357,6 +309,5 @@ WITH get_name AS (
 	if err != nil {
 		return ThreadInfo{}, err
 	}
-	fmt.Println(threadData.Uid)
 	return threadData, nil
 }
