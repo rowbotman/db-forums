@@ -1,8 +1,8 @@
 package db
 
 import (
-	"database/sql"
 	"errors"
+	"gopkg.in/jackc/pgx.v2"
 	"strconv"
 	"time"
 )
@@ -40,7 +40,7 @@ func UpdatePost(data DataForUpdPost) (Post, error) {
 		&post.Forum,
 		&post.ThreadId,
 		&post.Created)
-	if err == sql.ErrNoRows {
+	if err == pgx.ErrNoRows {
 		ret := Post{}
 		ret.Uid = -1
 		return ret, errors.New("Can't find post with id: " + strconv.FormatInt(data.Id, 10))
@@ -82,7 +82,7 @@ func GetPostInfo(postId int64, strArray []string) (map[string]interface{}, error
 		&post.ThreadId,
 		&post.Created)
 	fullInfo := threadInfo{}
-	if err == sql.ErrNoRows {
+	if err == pgx.ErrNoRows {
 		fullInfo["err"] = true
 		return fullInfo, errors.New("Can't find post with id: " + strconv.FormatInt(postId, 10))
 	} else if err != nil {

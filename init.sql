@@ -153,9 +153,9 @@ DROP INDEX IF EXISTS forum_id_idx;
 DROP INDEX IF EXISTS thread_id_idx;
 DROP INDEX IF EXISTS post_id_idx;
 
-CREATE INDEX IF NOT EXISTS forum_slug_idx     ON forum   USING hash(LOWER(slug));
-CREATE INDEX IF NOT EXISTS profile_nick_idx   ON profile USING hash(nickname);
-CREATE INDEX IF NOT EXISTS profile_email_idx  ON profile USING hash(LOWER(email));
+CREATE INDEX IF NOT EXISTS forum_slug_idx     ON forum(LOWER(slug));
+CREATE INDEX IF NOT EXISTS profile_nick_idx   ON profile(nickname);
+CREATE INDEX IF NOT EXISTS profile_email_idx  ON profile(LOWER(email));
 CREATE INDEX IF NOT EXISTS vote_id_thread_idx ON vote(user_id, thread_id);
 CREATE INDEX IF NOT EXISTS thread_userid_idx  ON thread(user_id);
 CREATE INDEX IF NOT EXISTS thread_forumid_idx ON thread(forum_id);

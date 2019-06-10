@@ -3,9 +3,8 @@ package main
 import (
 	"./db"
 	"./handlers"
-	"database/sql"
-	"fmt"
 	"github.com/gorilla/mux"
+	"gopkg.in/jackc/pgx.v2"
 	"log"
 	"net/http"
 )
@@ -19,20 +18,38 @@ const (
 )
 
 func main() {
-	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
-		"password=%s dbname=%s sslmode=disable",
-		host, port, user, password, dbname)
-	var err error
-	db.DB, err = sql.Open("postgres", psqlInfo)
-	if err != nil {
-		panic(err)
+	//psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
+	//	"password=%s dbname=%s sslmode=disable",
+	//	host, port, user, password, dbname)
+	pgxConfig := pgx.ConnConfig{
+		Host:     host,
+		Port:     port,
+		Database: dbname,
+		User:     user,
+		Password: password,
 	}
+	pgxConnPoolConfig := pgx.ConnPoolConfig{
+		ConnConfig: pgxConfig,
+		MaxConnections: 3, // \
+		AfterConnect: nil, //  - delete it
+		AcquireTimeout: 0, // /
+	}
+	var err error
+	db.DB, err = pgx.NewConnPool(pgxConnPoolConfig)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	//db.DB, err = sql.Open("postgres", psqlInfo)
+	//if err != nil {
+	//	panic(err)
+	//}
 	defer db.DB.Close()
 
-	err = db.DB.Ping()
-	if err != nil {
-		panic(err)
-	}
+	//err = db.DB.Ping()
+	//if err != nil {
+	//	panic(err)
+	//}
 
 	router := mux.NewRouter()
 	handlers.UserHandler(&router)

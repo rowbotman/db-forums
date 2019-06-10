@@ -1,9 +1,10 @@
 package db
 
 import (
-	"database/sql"
+	//"database/sql"
 	"errors"
-	)
+	"gopkg.in/jackc/pgx.v2"
+)
 
 type User struct {
 	Pk       int64      `json:"-"`         // why we used '-' here?
@@ -77,7 +78,7 @@ func SelectUser(nickname string) (User, error) {
 		&newUser.Nickname,
 		&newUser.Email,
 		&newUser.About)
-	if err == sql.ErrNoRows {
+	if err == pgx.ErrNoRows {
 		return User{}, errors.New("no rows")
 	} else if err != nil {
 		return User{}, err
@@ -95,7 +96,7 @@ func UpdateUser(updUser User) (User, error) {
 		&user.Name,
 		&user.Nickname,
 		&user.Email)
-	if err == sql.ErrNoRows || user.Nickname == updUser.Nickname {
+	if err == pgx.ErrNoRows || user.Nickname == updUser.Nickname {
 		if updUser.IsEmpty() {
 			userInfo, err := SelectUser(updUser.Nickname)
 			if err != nil {

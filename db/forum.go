@@ -1,8 +1,8 @@
 package db
 
 import (
-	"database/sql"
 	"errors"
+	"gopkg.in/jackc/pgx.v2"
 	"strconv"
 )
 
@@ -26,7 +26,7 @@ func InsertIntoForum(data DataForNewForum) (DataForNewForum, error) {
 	authorId := 0
 	nickname := ""
 	err := row.Scan(&authorId, &nickname)
-	if err == sql.ErrNoRows {
+	if err == pgx.ErrNoRows {
 		return DataForNewForum{}, errors.New("Can't find user with nickname: " + data.Nickname)
 	} else if err != nil {
 		return DataForNewForum{}, err
@@ -58,7 +58,7 @@ LEFT JOIN post p ON (p.forum_id = f.uid) WHERE `
 SELECT f.uid, p.nickname, COUNT(t.uid) FROM forum f 
 LEFT JOIN thread t ON (t.forum_id = f.uid)
 LEFT JOIN profile p ON (p.uid = f.author_id) WHERE `
-	var row *sql.Row
+	var row *pgx.Row
 	if isUid {
 		sqlStatement1 += `f.uid = $1 GROUP BY f.uid, f.title;`
 		sqlStatement2 += `f.uid = $1 GROUP BY f.uid, p.nickname;`
@@ -146,7 +146,7 @@ SELECT * FROM (
 	} else {
 		sqlStatement += ` LIMIT $2;`
 	}
-	var rows *sql.Rows
+	var rows *pgx.Rows
 	if len(since) > 0 {
 		rows, err = DB.Query(sqlStatement, forumId, since, limit)
 		if err != nil {
@@ -187,7 +187,7 @@ func SelectForumThreads(slug string, limit int32, since string, desc bool) ([]Th
 	row := DB.QueryRow(sqlStatement, slug)
 	forum := ""
 	err := row.Scan(&forum)
-	if err == sql.ErrNoRows {
+	if err == pgx.ErrNoRows {
 		return []ThreadInfo{{Uid : -1}}, errors.New("Can't find forum by slug: " + slug)
 	} else if err != nil {
 		return nil, err
@@ -200,7 +200,7 @@ func SelectForumThreads(slug string, limit int32, since string, desc bool) ([]Th
   JOIN profile p ON (t.user_id  = p.uid)
   WHERE LOWER(f.slug) = LOWER($1) `
 
-	var rows *sql.Rows
+	var rows *pgx.Rows
 	if len(since) > 0 {
 		if desc {
 			sqlStatement += ` AND t.created <= $2 ORDER BY t.created DESC LIMIT $3;`
@@ -249,7 +249,7 @@ func InsertIntoThread(slug string, threadData ThreadInfo) (ThreadInfo, error) {
 	row := DB.QueryRow(sqlStatement, threadData.Author)
 	authorId := int64(0)
 	err := row.Scan(&authorId)
-	if err == sql.ErrNoRows {
+	if err == pgx.ErrNoRows {
 		return ThreadInfo{Uid: -1}, errors.New("Can't find thread author by nickname: " + threadData.Author)
 	} else if err != nil {
 		return ThreadInfo{}, err
@@ -259,7 +259,7 @@ func InsertIntoThread(slug string, threadData ThreadInfo) (ThreadInfo, error) {
 	row = DB.QueryRow(sqlStatement, slug)
 	forum := int64(0)
 	err = row.Scan(&forum, &threadData.Forum)
-	if err == sql.ErrNoRows {
+	if err == pgx.ErrNoRows {
 		return ThreadInfo{Uid: -1}, errors.New("Can't find thread forum by slug: " + slug)
 	} else if err != nil {
 		return ThreadInfo{}, err

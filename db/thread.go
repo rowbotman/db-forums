@@ -1,8 +1,9 @@
 package db
 
 import (
-	"database/sql"
+	//"database/sql"
 	"errors"
+	"gopkg.in/jackc/pgx.v2"
 	"log"
 	"strconv"
 	"time"
@@ -50,7 +51,7 @@ type VoteInfo struct {
 func isThreadExist(slugOrId string) (Thread, bool) {
 	reqId, err := strconv.ParseInt(slugOrId, 10, 64)
 	sqlStatement := `SELECT uid, title, forum_id, "message", slug, user_id, created FROM thread `
-	var row *sql.Row
+	var row *pgx.Row
 	thread := Thread{}
 	if err != nil {
 		sqlStatement += `WHERE LOWER(slug) = LOWER($1);`
@@ -113,7 +114,7 @@ func InsertNewPosts(slugOrId string, posts []Post) ([]Post, error) {
 		}
 		row := DB.QueryRow(sqlStatement, thread.ForumId, userData.Pk, thread.Uid, post.Message, curTime, post.ParentId)
 		err = row.Scan(&post.Uid)
-		if err == sql.ErrNoRows {
+		if err == pgx.ErrNoRows {
 			return nil, err
 		} else if err != nil {
 			return nil, err
@@ -127,7 +128,7 @@ func InsertNewPosts(slugOrId string, posts []Post) ([]Post, error) {
 		err = row.Scan(
 			&post.Forum,
 			&post.Created)
-		if err == sql.ErrNoRows {
+		if err == pgx.ErrNoRows {
 			return nil, nil
 		} else if err != nil {
 			return nil, err
@@ -141,7 +142,7 @@ func SelectFromThread(slugOrId string, isId bool) (ThreadInfo, error) {
 	sqlStatement := `SELECT t.uid, t.title, u.nickname, f.slug, t.message, t.votes, t.created, t.slug FROM thread t
 	JOIN forum f ON (f.uid = t.forum_id)
 	JOIN profile u ON (t.user_id = u.uid) WHERE`
-	var row *sql.Row
+	var row *pgx.Row
 	if isId {
 		sqlStatement += ` t.uid = $1;`
 		id, err := strconv.ParseInt(slugOrId, 10, 64)
@@ -164,7 +165,7 @@ func SelectFromThread(slugOrId string, isId bool) (ThreadInfo, error) {
 		&thread.Votes,
 		&thread.Created,
 		&thread.Slug)
-	if err == sql.ErrNoRows {
+	if err == pgx.ErrNoRows {
 		return ThreadInfo{Uid: -1},
 			errors.New("Can't find thread by slug: " + slugOrId)
 	} else if err != nil {
@@ -252,7 +253,7 @@ func SelectThreadPosts(slugOrid string, limit int32, since int64, sort string, d
 	JOIN profile AS u ON (u.uid = p.user_id)
 	JOIN thread  AS t ON (t.uid = p.thread_id)`
 
-	var rows *sql.Rows
+	var rows *pgx.Rows
 	switch sort {
 	case "tree": {
 		if desc {
@@ -385,7 +386,7 @@ func UpdateVote(slugOrId string, vote VoteInfo) (ThreadInfo, error) {
 	value := int(0)
 	isEdited := false
 	err = DB.QueryRow(sqlGetVotes, userId, thread.Uid).Scan(&value, &isEdited)
-	if err == sql.ErrNoRows {
+	if err == pgx.ErrNoRows {
 		sqlStatement := `
 	INSERT INTO vote (user_id, thread_id, "value") VALUES ($1, $2, $3)`
 		_, err  = DB.Exec(sqlStatement, userId, thread.Uid, vote.Voice)
