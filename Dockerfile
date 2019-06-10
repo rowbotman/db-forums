@@ -25,8 +25,7 @@ RUN apt-get -y install postgresql-$PGVERSION postgresql-contrib
 USER postgres
 RUN /etc/init.d/postgresql start &&\
     psql --command "CREATE USER park WITH SUPERUSER PASSWORD 'admin';" &&\
-    createdb -O park park_forum &&\
-    psql -d park_forum -c "CREATE EXTENSION IF NOT EXISTS citext;" &&\
+    createdb -O park park_forum && psql -d park_forum -c "CREATE EXTENSION IF NOT EXISTS citext;" &&\
     psql park_forum -a -f ./init.sql &&\
     /etc/init.d/postgresql stop
 
@@ -57,4 +56,4 @@ EXPOSE 5000
 RUN echo "./config/postgresql.conf" >> /etc/postgresql/$PGVERSION/main/postgresql.conf
 
 # Запускаем PostgreSQL и api сервер
-CMD service postgresql start && go run main.go
+CMD service postgresql start && ./db-forums

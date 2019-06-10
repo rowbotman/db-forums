@@ -86,13 +86,11 @@ LEFT JOIN profile p ON (p.uid = f.author_id) WHERE `
 		if err != nil {
 			return Forum{}, err
 		}
-
 	} else {
 		sqlStatement1 += `LOWER(f.slug) = LOWER($1) GROUP BY f.uid, f.title;`
 		sqlStatement2 += `LOWER(f.slug) = LOWER($1) GROUP BY f.uid, p.nickname;`
 
 		id := int64(0)
-
 		row = DB.QueryRow(sqlStatement1, slug)
 		err := row.Scan(
 			&id,
@@ -108,7 +106,6 @@ LEFT JOIN profile p ON (p.uid = f.author_id) WHERE `
 			&id,
 			&forum.User,
 			&forum.Threads)
-
 		if err != nil {
 			return Forum{}, err
 		}
@@ -123,13 +120,6 @@ func SelectForumUsers(slug string, limit int32, since string, desc bool) ([]User
 	if err != nil {
 		return nil, errors.New("Can't find forum by slug: " + slug)
 	}
-	sqlSelect := `SELECT u.uid, u.nickname, u.full_name, u.about, u.email FROM profile u` // TODO: убрать лишний sqlStatement
-	sqlStatement = `
-SELECT * FROM (
-` + sqlSelect + `JOIN thread t ON (t.user_id = u.uid) WHERE t.forum_id = $1 
-UNION
-` + sqlSelect + `JOIN post p   ON (p.user_id = u.uid) WHERE p.forum_id = $1
-) _ ORDER BY nickname COLLATE "C"`
 	sqlStatement = `
 SELECT * FROM (
     SELECT u.uid, u.nickname, u.full_name, u.about, u.email FROM profile u
@@ -198,7 +188,7 @@ func SelectForumThreads(slug string, limit int32, since string, desc bool) ([]Th
 	forum := ""
 	err := row.Scan(&forum)
 	if err == sql.ErrNoRows {
-		return []ThreadInfo{{Slug: slug}}, errors.New("Can't find forum by slug: " + slug)
+		return []ThreadInfo{{Uid : -1}}, errors.New("Can't find forum by slug: " + slug)
 	} else if err != nil {
 		return nil, err
 	}
@@ -275,39 +265,52 @@ func InsertIntoThread(slug string, threadData ThreadInfo) (ThreadInfo, error) {
 		return ThreadInfo{}, err
 	}
 
-	existThread, ok := isThreadExist(threadData.Slug)
-	if ok {
-		threadData.Title = existThread.Title
-		threadData.Slug = existThread.Slug
-		threadData.Message = existThread.Message
-		threadData.Created = existThread.Created
-		threadData.Uid = existThread.Uid
-		sqlStatement = `
+	if threadData.Slug != nil {
+		sqlStatement = `INSERT INTO thread VALUES(default, $1, $2, $3, $4, $5, $6, default) RETURNING uid;`
+		err = DB.QueryRow(
+			sqlStatement,
+			authorId,
+			forum,
+			threadData.Title,
+			threadData.Slug,
+			threadData.Message,
+			threadData.Created).Scan(&threadData.Uid)
+	} else {
+		sqlStatement = `INSERT INTO thread(uid, user_id, forum_id, title, message, created, votes) VALUES(default, $1, $2, $3, $4, $5, default) RETURNING uid;`
+		err = DB.QueryRow(
+			sqlStatement,
+			authorId,
+			forum,
+			threadData.Title,
+			threadData.Message,
+			threadData.Created).Scan(&threadData.Uid)
+	}
+
+	if err == nil {
+		return threadData, nil
+	} else {
+		existThread, ok := isThreadExist(*threadData.Slug)
+		if ok {
+			threadData.Title = existThread.Title
+			threadData.Slug = existThread.Slug
+			threadData.Message = existThread.Message
+			threadData.Created = existThread.Created
+			threadData.Uid = existThread.Uid
+			sqlStatement = `
 WITH get_name AS (
     SELECT nickname FROM profile WHERE uid = $1
 ) SELECT slug, nickname FROM forum, get_name WHERE uid = $2`
-		err := DB.QueryRow(
-			sqlStatement,
-			existThread.UserId,
-			existThread.ForumId).Scan(
+			err := DB.QueryRow(
+				sqlStatement,
+				existThread.UserId,
+				existThread.ForumId).Scan(
 				&threadData.Forum,
 				&threadData.Author)
-		if err != nil {
-			return threadData, nil
+			if err != nil {
+				return threadData, nil
+			}
+			return threadData, errors.New("thread exist")
 		}
-		return threadData, errors.New("thread exist")
+		return ThreadInfo{Uid: -1}, err
 	}
-	sqlStatement = `INSERT INTO thread VALUES(default, $1, $2, $3, $4, $5, $6, default) RETURNING uid;`
-	err = DB.QueryRow(
-		sqlStatement,
-		authorId,
-		forum,
-		threadData.Title,
-		threadData.Slug,
-		threadData.Message,
-		threadData.Created).Scan(&threadData.Uid)
-	if err != nil {
-		return ThreadInfo{}, err
-	}
-	return threadData, nil
 }

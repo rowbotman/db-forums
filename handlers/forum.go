@@ -120,7 +120,7 @@ func forumGetThreads(w http.ResponseWriter,req *http.Request) {
 	users, err := db.SelectForumThreads(slugOrId, int32(limit), since, desc)
 
 	if err != nil {
-		if users != nil && len(users[0].Slug) > 0 {
+		if users != nil && users[0].Uid < 0 {
 			Get404(w, err.Error())
 			return
 		}
@@ -155,9 +155,8 @@ func forumCreateThread(w http.ResponseWriter,req *http.Request) {
 		return
 	}
 	isMin := false
-	if len(data.Slug) == 0 {
+	if data.Slug == nil {
 		isMin = true
-		data.Slug = slugOrId
 	}
 	thread, err := db.InsertIntoThread(slugOrId, data)
 	if err != nil {

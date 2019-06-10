@@ -13,7 +13,7 @@ DROP FUNCTION IF EXISTS add_to_thread();
 DROP FUNCTION IF EXISTS add_path();
 -- DROP TABLE IF EXISTS  CASCADE;
 
--- CREATE ROLE park_forum;
+CREATE ROLE park_forum;
 
 CREATE TABLE IF NOT EXISTS profile
 (
@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS thread
   forum_id INT                         NOT NULL,
   title    VARCHAR(128)                NOT NULL CHECK ( title <> '' ),
 --   slug     CITEXT       UNIQUE         NOT NULL,
-  slug     VARCHAR(128) UNIQUE         NOT NULL,
+  slug     CITEXT UNIQUE         ,
   message  VARCHAR(2048)               NOT NULL,
   created  TIMESTAMP(3) WITH TIME ZONE NOT NULL DEFAULT current_timestamp,
   votes    INT                         NOT NULL DEFAULT 0,
@@ -129,6 +129,40 @@ CREATE TRIGGER t_post
   AFTER INSERT ON post
   FOR EACH ROW EXECUTE PROCEDURE add_path ();
 
+-- forum uid = +2
+-- forum lower(slug) =  +5
+-- thread forum_id = +2
+-- thread lower(slug) = +2
+-- thread uid = +4
+-- profile nickname = +5
+-- post uid +5
+-- thread uid and post path >/>= +1
+-- thread uid = and post uid (mb and post uid >/< path[1])
+-- thread uid = and post >/< +2
+-- vote user_id = and thread_id = +1
+-- profile lower(nickname) = or lower(email) = +1
+-- profile lower(email) = +1
+DROP INDEX IF EXISTS forum_slug_idx;
+DROP INDEX IF EXISTS profile_nick_idx;
+DROP INDEX IF EXISTS profile_email_idx;
+DROP INDEX IF EXISTS vote_id_thread_idx;
+DROP INDEX IF EXISTS thread_userid_idx;
+DROP INDEX IF EXISTS thread_forumid_idx;
+DROP INDEX IF EXISTS post_path_idx;
+DROP INDEX IF EXISTS forum_id_idx;
+DROP INDEX IF EXISTS thread_id_idx;
+DROP INDEX IF EXISTS post_id_idx;
+
+CREATE INDEX IF NOT EXISTS forum_slug_idx     ON forum   USING hash(LOWER(slug));
+CREATE INDEX IF NOT EXISTS profile_nick_idx   ON profile USING hash(nickname);
+CREATE INDEX IF NOT EXISTS profile_email_idx  ON profile USING hash(LOWER(email));
+CREATE INDEX IF NOT EXISTS vote_id_thread_idx ON vote(user_id, thread_id);
+CREATE INDEX IF NOT EXISTS thread_userid_idx  ON thread(user_id);
+CREATE INDEX IF NOT EXISTS thread_forumid_idx ON thread(forum_id);
+CREATE INDEX IF NOT EXISTS post_path_idx      ON post(path);
+CREATE INDEX IF NOT EXISTS forum_id_idx       ON forum(uid);
+CREATE INDEX IF NOT EXISTS thread_id_idx      ON thread(uid);
+CREATE INDEX IF NOT EXISTS post_id_idx        ON post(uid);
 
 
 GRANT ALL PRIVILEGES ON DATABASE park_forum TO park_forum;--why we granted privileges to park_forum if

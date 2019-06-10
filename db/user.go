@@ -3,7 +3,7 @@ package db
 import (
 	"database/sql"
 	"errors"
-)
+	)
 
 type User struct {
 	Pk       int64      `json:"-"`         // why we used '-' here?
