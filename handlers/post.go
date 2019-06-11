@@ -4,19 +4,19 @@ import (
 	"../db"
 	"encoding/json"
 	"fmt"
-	"github.com/go-zoo/bone"
+	"github.com/naoina/denco"
 	"net/http"
 	"strconv"
 	"strings"
 )
 
-func postChangeInfo(w http.ResponseWriter, req *http.Request) {
+func postChangeInfo(w http.ResponseWriter, req *http.Request, ps denco.Params) {
 	var data db.DataForUpdPost
 	var err error
 	_= json.NewDecoder(req.Body).Decode(&data)
 	//params := mux.Vars(req)
 	id := int64(0)
-	if postId := bone.GetValue(req, "id"); len(postId) <= 0 {
+	if postId := ps.Get("id"); len(postId) <= 0 {
 		http.Error(w, "Can't parse id", http.StatusBadRequest)
 		return
 	} else {
@@ -46,11 +46,11 @@ func postChangeInfo(w http.ResponseWriter, req *http.Request) {
 	_, _ = w.Write(output)
 }
 
-func PostGetInfo(w http.ResponseWriter,req *http.Request) {
+func PostGetInfo(w http.ResponseWriter, req *http.Request, ps denco.Params) {
 	//params := mux.Vars(req)
 	id := int64(0)
 	var err error
-	if postId := bone.GetValue(req, "id"); len(postId) <= 0 {
+	if postId := ps.Get("id"); len(postId) <= 0 {
 		http.Error(w, "Can't parse id", http.StatusBadRequest)
 		return
 	} else {
@@ -85,8 +85,9 @@ func PostGetInfo(w http.ResponseWriter,req *http.Request) {
 	_, _ = w.Write(output)
 }
 
-func PostHandler(router **bone.Mux) {
+func PostHandler(router **denco.Mux) []denco.Handler {
 	fmt.Println("posts handlers initialized")
-	(*router).PostFunc("/api/post/:id/details", postChangeInfo)
-	(*router).GetFunc( "/api/post/:id/details", PostGetInfo)
+	return []denco.Handler{
+		(*router).POST("/api/post/:id/details", postChangeInfo),
+		(*router).GET( "/api/post/:id/details", PostGetInfo)}
 }

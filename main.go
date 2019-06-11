@@ -3,7 +3,7 @@ package main
 import (
 	"./db"
 	"./handlers"
-	"github.com/go-zoo/bone"
+	"github.com/naoina/denco"
 	"gopkg.in/jackc/pgx.v2"
 	"log"
 	"net/http"
@@ -38,16 +38,25 @@ func main() {
 	}
 	defer db.DB.Close()
 
-	router := bone.New()
-	handlers.UserHandler(&router)
-	handlers.ForumHandler(&router)
-	handlers.PostHandler(&router)
-	handlers.ServiceHandler(&router)
-	handlers.ThreadHandler(&router)
+	router := denco.NewMux()
+	handlerArray := handlers.UserHandler(&router)
+	for _, elem := range handlers.ForumHandler(&router) {
+		handlerArray = append(handlerArray, elem)
+	}
+	for _, elem := range handlers.PostHandler(&router) {
+		handlerArray = append(handlerArray, elem)
+	}
+	for _, elem := range handlers.ServiceHandler(&router) {
+		handlerArray = append(handlerArray, elem)
+	}
+	for _, elem := range handlers.ThreadHandler(&router) {
+		handlerArray = append(handlerArray, elem)
+	}
 
-	http.Handle("/",router)
+	handler, err := router.Build(handlerArray)
+	http.Handle("/", handler)
 
-	err = http.ListenAndServe(":5000", router)
+	err = http.ListenAndServe(":5000", handler)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}

@@ -4,11 +4,11 @@ import (
 	"../db"
 	"encoding/json"
 	"fmt"
-	"github.com/go-zoo/bone"
+	"github.com/naoina/denco"
 	"net/http"
 )
 
-func serviceDrop(w http.ResponseWriter,req *http.Request) {
+func serviceDrop(w http.ResponseWriter, _ *http.Request, _ denco.Params) {
 	w.Header().Set("content-type", "text/plain")
 	if db.ClearService() {
 		_, _ = w.Write([]byte("Отчистка базы успешно завершена"))
@@ -17,7 +17,7 @@ func serviceDrop(w http.ResponseWriter,req *http.Request) {
 	_, _ = w.Write([]byte("error occurred"))
 }
 
-func serviceGetInfo(w http.ResponseWriter,req *http.Request) {
+func serviceGetInfo(w http.ResponseWriter, _ *http.Request, _ denco.Params) {
 	w.Header().Set("content-type", "text/plain")
 	status, err := db.ServiceGet()
 	if err != nil {
@@ -34,8 +34,9 @@ func serviceGetInfo(w http.ResponseWriter,req *http.Request) {
 	_, _ = w.Write(output)
 }
 
-func ServiceHandler(router **bone.Mux) {
+func ServiceHandler(router **denco.Mux) []denco.Handler {
 	fmt.Println("services handlers initialized")
-	(*router).PostFunc("/api/service/clear",  serviceDrop)
-	(*router).GetFunc( "/api/service/status", serviceGetInfo)
+	return []denco.Handler{
+		(*router).POST("/api/service/clear",  serviceDrop),
+		(*router).GET( "/api/service/status", serviceGetInfo)}
 }

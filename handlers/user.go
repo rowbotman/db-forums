@@ -4,15 +4,16 @@ import (
 	"../db"
 	"encoding/json"
 	"fmt"
-	"github.com/go-zoo/bone"
+	//"github.com/go-zoo/bone"
+	"github.com/naoina/denco"
 	"io/ioutil"
 	"net/http"
 )
 
-func userGet(w http.ResponseWriter, req *http.Request) {
+func userGet(w http.ResponseWriter, req *http.Request, ps denco.Params) {
 	//params := mux.Vars(req)
 	//nickname, ok := params["nickname"]
-	nickname := bone.GetValue(req,"nickname")
+	nickname := ps.Get("nickname")
 	if len(nickname) <= 0 {
 		http.Error(w, "can't parse nickname", http.StatusBadRequest)
 		return
@@ -27,7 +28,7 @@ func userGet(w http.ResponseWriter, req *http.Request) {
 	_ = json.NewEncoder(w).Encode(user)
 }
 
-func userCreate(w http.ResponseWriter,req *http.Request) {
+func userCreate(w http.ResponseWriter,req *http.Request, ps denco.Params) {
 	//params := mux.Vars(req)
 	body, err := ioutil.ReadAll(req.Body)
 	defer req.Body.Close()
@@ -38,7 +39,7 @@ func userCreate(w http.ResponseWriter,req *http.Request) {
 
 	data := db.User{}
 	//data.Nickname, _ = params["nickname"]
-	data.Nickname = bone.GetValue(req,"nickname")
+	data.Nickname = ps.Get("nickname")
 	err = json.Unmarshal(body, &data)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
@@ -80,10 +81,10 @@ func userCreate(w http.ResponseWriter,req *http.Request) {
 	}
 }
 
-func userPost(w http.ResponseWriter, req *http.Request) {
+func userPost(w http.ResponseWriter, req *http.Request, ps denco.Params) {
 	//params := mux.Vars(req)
 	//nickname, _ := params["nickname"]
-	nickname := bone.GetValue(req,"nickname")
+	nickname := ps.Get("nickname")
 	body, err := ioutil.ReadAll(req.Body)
 	defer req.Body.Close()
 	if err != nil {
@@ -121,9 +122,14 @@ func userPost(w http.ResponseWriter, req *http.Request) {
 	_, _ = w.Write(output)
 }
 
-func UserHandler(router **bone.Mux) {
+func UserHandler(router **denco.Mux) []denco.Handler {
 	fmt.Println("user handlers initialized")
-	(*router).PostFunc("/api/user/:nickname/create",  userCreate)
-	(*router).GetFunc( "/api/user/:nickname/profile", userGet)
-	(*router).PostFunc("/api/user/:nickname/profile", userPost)
+	//(*router).POST("/api/user/:nickname/create",  userCreate)
+	//(*router).GET( "/api/user/:nickname/profile", userGet)
+	//(*router).POST("/api/user/:nickname/profile", userPost)
+	return []denco.Handler{
+		(*router).POST("/api/user/:nickname/create",  userCreate),
+		(*router).GET( "/api/user/:nickname/profile", userGet),
+		(*router).POST("/api/user/:nickname/profile", userPost),
+	}
 }

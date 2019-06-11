@@ -9,8 +9,10 @@ RUN apt-get update && \
 
 # Клонируем проект
 USER root
-RUN git clone https://github.com/rowbotman/db-forums.git
-WORKDIR db-forums
+#RUN git clone https://github.com/rowbotman/db-forums.git
+WORKDIR /home/db-forums
+COPY . .
+RUN cd /home/db-forums
 
 # Устанавливаем PostgreSQL
 RUN apt-get -y update
