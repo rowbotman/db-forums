@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS forum
   author_id INT                 NOT NULL,
 --   slug      CITEXT       UNIQUE NOT NULL,
   slug      VARCHAR(256) UNIQUE NOT NULL,
-  FOREIGN   KEY (author_id) REFERENCES profile (uid)
+  FOREIGN   KEY (author_id) REFERENCES profile (uid) -- попробовать убрать
 );
 
 CREATE TABLE IF NOT EXISTS thread
@@ -159,7 +159,7 @@ CREATE INDEX IF NOT EXISTS profile_email_idx  ON profile(LOWER(email));
 CREATE INDEX IF NOT EXISTS vote_id_thread_idx ON vote(user_id, thread_id);
 CREATE INDEX IF NOT EXISTS thread_userid_idx  ON thread(user_id);
 CREATE INDEX IF NOT EXISTS thread_forumid_idx ON thread(forum_id);
--- CREATE INDEX IF NOT EXISTS post_path_idx      ON post(path);
+-- CREATE INDEX IF NOT EXISTS post_path_idx   ON post(path);
 CREATE INDEX IF NOT EXISTS forum_id_idx       ON forum(uid);
 CREATE INDEX IF NOT EXISTS thread_id_idx      ON thread(uid);
 CREATE INDEX IF NOT EXISTS post_id_idx        ON post(uid);
