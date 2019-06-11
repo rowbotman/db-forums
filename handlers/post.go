@@ -4,7 +4,7 @@ import (
 	"../db"
 	"encoding/json"
 	"fmt"
-	"github.com/gorilla/mux"
+	"github.com/go-zoo/bone"
 	"net/http"
 	"strconv"
 	"strings"
@@ -12,13 +12,19 @@ import (
 
 func postChangeInfo(w http.ResponseWriter, req *http.Request) {
 	var data db.DataForUpdPost
+	var err error
 	_= json.NewDecoder(req.Body).Decode(&data)
-	params := mux.Vars(req)
+	//params := mux.Vars(req)
 	id := int64(0)
-	if postId, ok := params["id"]; !ok {
+	if postId := bone.GetValue(req, "id"); len(postId) <= 0 {
 		http.Error(w, "Can't parse id", http.StatusBadRequest)
+		return
 	} else {
-		id, _ = strconv.ParseInt(postId, 10, 64)
+		id, err = strconv.ParseInt(postId, 10, 64)
+		if err != nil {
+			http.Error(w, "Can't parse id", http.StatusBadRequest)
+			return
+		}
 	}
 	data.Id = id
 	forum, err := db.UpdatePost(data)
@@ -41,16 +47,16 @@ func postChangeInfo(w http.ResponseWriter, req *http.Request) {
 }
 
 func PostGetInfo(w http.ResponseWriter,req *http.Request) {
-	params := mux.Vars(req)
+	//params := mux.Vars(req)
 	id := int64(0)
 	var err error
-	if postId, ok := params["id"]; !ok {
+	if postId := bone.GetValue(req, "id"); len(postId) <= 0 {
 		http.Error(w, "Can't parse id", http.StatusBadRequest)
 		return
 	} else {
 		id, err = strconv.ParseInt(postId, 10, 64)
-		if err !=  nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+		if err != nil {
+			http.Error(w, "Can't parse id", http.StatusBadRequest)
 			return
 		}
 	}
@@ -79,8 +85,8 @@ func PostGetInfo(w http.ResponseWriter,req *http.Request) {
 	_, _ = w.Write(output)
 }
 
-func PostHandler(router **mux.Router) {
+func PostHandler(router **bone.Mux) {
 	fmt.Println("posts handlers initialized")
-	(*router).HandleFunc("/api/post/{id}/details", postChangeInfo).Methods("POST")
-	(*router).HandleFunc("/api/post/{id}/details", PostGetInfo).Methods("GET")
+	(*router).PostFunc("/api/post/:id/details", postChangeInfo)
+	(*router).GetFunc( "/api/post/:id/details", PostGetInfo)
 }

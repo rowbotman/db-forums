@@ -4,16 +4,17 @@ import (
 	"../db"
 	"encoding/json"
 	"fmt"
-	"github.com/gorilla/mux"
+	"github.com/go-zoo/bone"
 	"io/ioutil"
 	"net/http"
 )
 
 func userGet(w http.ResponseWriter, req *http.Request) {
-	params := mux.Vars(req)
-	nickname, ok := params["nickname"]
-	if !ok {
-		http.Error(w, "can't parse slug", http.StatusBadRequest)
+	//params := mux.Vars(req)
+	//nickname, ok := params["nickname"]
+	nickname := bone.GetValue(req,"nickname")
+	if len(nickname) <= 0 {
+		http.Error(w, "can't parse nickname", http.StatusBadRequest)
 		return
 	}
 	user, err := db.SelectUser(nickname)
@@ -27,7 +28,7 @@ func userGet(w http.ResponseWriter, req *http.Request) {
 }
 
 func userCreate(w http.ResponseWriter,req *http.Request) {
-	params := mux.Vars(req)
+	//params := mux.Vars(req)
 	body, err := ioutil.ReadAll(req.Body)
 	defer req.Body.Close()
 	if err != nil {
@@ -36,7 +37,8 @@ func userCreate(w http.ResponseWriter,req *http.Request) {
 	}
 
 	data := db.User{}
-	data.Nickname, _ = params["nickname"]
+	//data.Nickname, _ = params["nickname"]
+	data.Nickname = bone.GetValue(req,"nickname")
 	err = json.Unmarshal(body, &data)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
@@ -79,8 +81,9 @@ func userCreate(w http.ResponseWriter,req *http.Request) {
 }
 
 func userPost(w http.ResponseWriter, req *http.Request) {
-	params := mux.Vars(req)
-	nickname, _ := params["nickname"]
+	//params := mux.Vars(req)
+	//nickname, _ := params["nickname"]
+	nickname := bone.GetValue(req,"nickname")
 	body, err := ioutil.ReadAll(req.Body)
 	defer req.Body.Close()
 	if err != nil {
@@ -118,9 +121,9 @@ func userPost(w http.ResponseWriter, req *http.Request) {
 	_, _ = w.Write(output)
 }
 
-func UserHandler(router **mux.Router) {
+func UserHandler(router **bone.Mux) {
 	fmt.Println("user handlers initialized")
-	(*router).HandleFunc("/api/user/{nickname}/create",  userCreate)
-	(*router).HandleFunc("/api/user/{nickname}/profile", userGet).Methods("GET")
-	(*router).HandleFunc("/api/user/{nickname}/profile", userPost).Methods("POST")
+	(*router).PostFunc("/api/user/:nickname/create",  userCreate)
+	(*router).GetFunc( "/api/user/:nickname/profile", userGet)
+	(*router).PostFunc("/api/user/:nickname/profile", userPost)
 }

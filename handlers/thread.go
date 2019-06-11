@@ -4,15 +4,16 @@ import (
 	"../db"
 	"encoding/json"
 	"fmt"
-	"github.com/gorilla/mux"
+	"github.com/go-zoo/bone"
 	"io/ioutil"
 	"net/http"
 	"strconv"
 )
 
 func threadChangeInfo(w http.ResponseWriter,req *http.Request) {
-	params := mux.Vars(req)
-	slugOrId, _ := params["slug_or_id"]
+	//params := mux.Vars(req)
+	//slugOrId, _ := params["slug_or_id"]
+	slugOrId := bone.GetValue(req,"slug_or_id")
 	thread := db.ThreadInfo{}
 	body, err := ioutil.ReadAll(req.Body)
 	defer req.Body.Close()
@@ -45,8 +46,9 @@ func threadChangeInfo(w http.ResponseWriter,req *http.Request) {
 }
 
 func threadCreate(w http.ResponseWriter,req *http.Request) {
-	params := mux.Vars(req)
-	slugOrId, _ := params["slug_or_id"]
+	//params := mux.Vars(req)
+	//slugOrId, _ := params["slug_or_id"]
+	slugOrId := bone.GetValue(req,"slug_or_id")
 	data := []db.Post{}
 	body, err := ioutil.ReadAll(req.Body)
 	defer req.Body.Close()
@@ -82,8 +84,9 @@ func threadCreate(w http.ResponseWriter,req *http.Request) {
 }
 
 func threadGetInfo(w http.ResponseWriter,req *http.Request) {
-	params := mux.Vars(req)
-	slugOrId, _ := params["slug_or_id"]
+	//params := mux.Vars(req)
+	//slugOrId, _ := params["slug_or_id"]
+	slugOrId := bone.GetValue(req,"slug_or_id")
 	_, err := strconv.ParseInt(slugOrId, 10, 64)
 	thread := db.ThreadInfo{}
 	if err != nil {
@@ -97,6 +100,8 @@ func threadGetInfo(w http.ResponseWriter,req *http.Request) {
 			Get404(w, err.Error())
 			return
 		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	output, err := json.Marshal(thread)
@@ -111,8 +116,9 @@ func threadGetInfo(w http.ResponseWriter,req *http.Request) {
 
 
 func threadGetPosts(w http.ResponseWriter, req *http.Request) {
-	params := mux.Vars(req)
-	slugOrId, _ := params["slug_or_id"]
+	//params := mux.Vars(req)
+	//slugOrId, _ := params["slug_or_id"]
+	slugOrId := bone.GetValue(req,"slug_or_id")
 	var err error
 	limit := int64(100)
 	if limitStr := req.URL.Query().Get("limit"); len(limitStr) != 0 {
@@ -159,8 +165,9 @@ func threadGetPosts(w http.ResponseWriter, req *http.Request) {
 }
 
 func threadVote(w http.ResponseWriter,req *http.Request) {
-	params := mux.Vars(req)
-	slugOrId, _ := params["slug_or_id"]
+	//params := mux.Vars(req)
+	//slugOrId, _ := params["slug_or_id"]
+	slugOrId := bone.GetValue(req,"slug_or_id")
 	body, err := ioutil.ReadAll(req.Body)
 	defer req.Body.Close()
 
@@ -207,11 +214,11 @@ func threadVote(w http.ResponseWriter,req *http.Request) {
 	_, _ = w.Write(output)
 }
 
-func ThreadHandler(router **mux.Router) {
+func ThreadHandler(router **bone.Mux) {
 	fmt.Println("threads handlers initialized")
-	(*router).HandleFunc("/api/thread/{slug_or_id}/create",  threadCreate).Methods("POST")
-	(*router).HandleFunc("/api/thread/{slug_or_id}/details", threadGetInfo).Methods("GET")
-	(*router).HandleFunc("/api/thread/{slug_or_id}/details", threadChangeInfo).Methods("POST")
-	(*router).HandleFunc("/api/thread/{slug_or_id}/posts",   threadGetPosts).Methods("GET")
-	(*router).HandleFunc("/api/thread/{slug_or_id}/vote",    threadVote).Methods("POST")
+	(*router).PostFunc("/api/thread/:slug_or_id/create",  threadCreate)
+	(*router).GetFunc( "/api/thread/:slug_or_id/details", threadGetInfo)
+	(*router).PostFunc("/api/thread/:slug_or_id/details", threadChangeInfo)
+	(*router).GetFunc( "/api/thread/:slug_or_id/posts",   threadGetPosts)
+	(*router).PostFunc("/api/thread/:slug_or_id/vote",    threadVote)
 }

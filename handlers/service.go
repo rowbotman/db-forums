@@ -4,7 +4,7 @@ import (
 	"../db"
 	"encoding/json"
 	"fmt"
-	"github.com/gorilla/mux"
+	"github.com/go-zoo/bone"
 	"net/http"
 )
 
@@ -34,8 +34,8 @@ func serviceGetInfo(w http.ResponseWriter,req *http.Request) {
 	_, _ = w.Write(output)
 }
 
-func ServiceHandler(router **mux.Router) {
+func ServiceHandler(router **bone.Mux) {
 	fmt.Println("services handlers initialized")
-	(*router).HandleFunc("/api/service/clear", serviceDrop).Methods("POST")
-	(*router).HandleFunc("/api/service/status", serviceGetInfo).Methods("GET")
+	(*router).PostFunc("/api/service/clear",  serviceDrop)
+	(*router).GetFunc( "/api/service/status", serviceGetInfo)
 }
