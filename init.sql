@@ -157,21 +157,29 @@ CREATE TRIGGER t_post
 -- profile lower(email) = +1
 
 
-CREATE INDEX IF NOT EXISTS forum_slug_idx      ON forum(LOWER(slug));
-CREATE INDEX IF NOT EXISTS profile_nick_idx    ON profile(nickname);
-CREATE INDEX IF NOT EXISTS profile_email_idx   ON profile(LOWER(email));
-CREATE INDEX IF NOT EXISTS profile_lownick_idx ON profile(LOWER(nickname));
-CREATE INDEX IF NOT EXISTS profile_id_idx      ON profile(uid); -- ?
-CREATE INDEX IF NOT EXISTS vote_id_thread_idx  ON vote(user_id, thread_id);
-CREATE INDEX IF NOT EXISTS thread_userid_idx   ON thread(user_id);
-CREATE INDEX IF NOT EXISTS thread_forumid_idx  ON thread(forum_id);
-CREATE INDEX IF NOT EXISTS thread_slug_idx     ON thread USING HASH(LOWER(slug));
+CREATE INDEX IF NOT EXISTS forum_slug_idx        ON forum(LOWER(slug));
+CREATE INDEX IF NOT EXISTS forum_id_idx          ON forum(uid);
+CREATE INDEX IF NOT EXISTS forum_authorid_idx    ON forum(author_id);
+CREATE INDEX IF NOT EXISTS profile_nick_idx      ON profile(nickname);
+CREATE INDEX IF NOT EXISTS profile_email_idx     ON profile(LOWER(email));
+CREATE INDEX IF NOT EXISTS profile_lownick_idx   ON profile(LOWER(nickname));
+CREATE INDEX IF NOT EXISTS profile_id_idx        ON profile(uid); -- ?
+CREATE INDEX IF NOT EXISTS thread_userid_idx     ON thread(user_id);
+CREATE INDEX IF NOT EXISTS thread_forumid_idx    ON thread(forum_id);
+CREATE INDEX IF NOT EXISTS thread_slug_idx       ON thread USING HASH(LOWER(slug));
+CREATE INDEX IF NOT EXISTS thread_id_idx         ON thread(uid);
+CREATE INDEX IF NOT EXISTS post_forumid_idx      ON post(forum_id);
+CREATE INDEX IF NOT EXISTS post_parentid_idx     ON post(parent_id);
+CREATE INDEX IF NOT EXISTS post_parentid_uid_idx ON post(parent_id, uid);
+CREATE INDEX IF NOT EXISTS post_userid_idx       ON post(user_id);
+CREATE INDEX IF NOT EXISTS post_threadid_idx     ON post(thread_id);
+CREATE INDEX IF NOT EXISTS post_id_idx           ON post(uid);
+CREATE INDEX IF NOT EXISTS post_pathcreated_idx  ON post(path, created);
+CREATE INDEX IF NOT EXISTS post_many_idx         ON post(thread_id, parent_id, uid);
+CREATE INDEX IF NOT EXISTS post_uid_withpath_idx ON post(uid) INCLUDE (path);
 -- CREATE INDEX IF NOT EXISTS post_path_idx       ON post(path);
-CREATE INDEX IF NOT EXISTS forum_id_idx        ON forum(uid);
-CREATE INDEX IF NOT EXISTS thread_id_idx       ON thread(uid);
-CREATE INDEX IF NOT EXISTS post_id_idx         ON post(uid);
--- CREATE INDEX IF NOT EXISTS post_forumid_idx    ON post(forum_id);
 -- CREATE INDEX IF NOT EXISTS post_idincl_idx ON post(uid) INCLUDE (path, thread_id, forum_id);
+CREATE INDEX IF NOT EXISTS vote_id_thread_idx    ON vote(user_id, thread_id);
 
 
 GRANT ALL PRIVILEGES ON DATABASE park_forum TO park_forum;--why we granted privileges to park_forum if
