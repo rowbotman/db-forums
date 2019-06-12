@@ -11,8 +11,6 @@ import (
 )
 
 func threadChangeInfo(w http.ResponseWriter,req *http.Request, ps denco.Params) {
-	//params := mux.Vars(req)
-	//slugOrId, _ := params["slug_or_id"]
 	slugOrId := ps.Get("slug_or_id")
 	thread := db.ThreadInfo{}
 	body, err := ioutil.ReadAll(req.Body)
@@ -46,8 +44,6 @@ func threadChangeInfo(w http.ResponseWriter,req *http.Request, ps denco.Params) 
 }
 
 func threadCreate(w http.ResponseWriter,req *http.Request, ps denco.Params) {
-	//params := mux.Vars(req)
-	//slugOrId, _ := params["slug_or_id"]
 	slugOrId := ps.Get("slug_or_id")
 	data := []db.Post{}
 	body, err := ioutil.ReadAll(req.Body)
@@ -84,8 +80,6 @@ func threadCreate(w http.ResponseWriter,req *http.Request, ps denco.Params) {
 }
 
 func threadGetInfo(w http.ResponseWriter,req *http.Request, ps denco.Params) {
-	//params := mux.Vars(req)
-	//slugOrId, _ := params["slug_or_id"]
 	slugOrId := ps.Get("slug_or_id")
 	_, err := strconv.ParseInt(slugOrId, 10, 64)
 	thread := db.ThreadInfo{}
@@ -116,8 +110,7 @@ func threadGetInfo(w http.ResponseWriter,req *http.Request, ps denco.Params) {
 
 
 func threadGetPosts(w http.ResponseWriter, req *http.Request, ps denco.Params) {
-	//params := mux.Vars(req)
-	//slugOrId, _ := params["slug_or_id"]
+	//log.Println("thread get posts:", req.RequestURI)
 	slugOrId := ps.Get("slug_or_id")
 	var err error
 	limit := int64(100)
@@ -146,9 +139,11 @@ func threadGetPosts(w http.ResponseWriter, req *http.Request, ps denco.Params) {
 
 	posts, err := db.SelectThreadPosts(slugOrId, int32(limit), since, sort, desc)
 	if err != nil {
-		if posts[0].Uid == -1 {
-			Get404(w, err.Error())
-			return
+		if posts != nil {
+			if posts[0].Uid == -1 {
+				Get404(w, err.Error())
+				return
+			}
 		}
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -165,8 +160,6 @@ func threadGetPosts(w http.ResponseWriter, req *http.Request, ps denco.Params) {
 }
 
 func threadVote(w http.ResponseWriter,req *http.Request, ps denco.Params) {
-	//params := mux.Vars(req)
-	//slugOrId, _ := params["slug_or_id"]
 	slugOrId := ps.Get("slug_or_id")
 	body, err := ioutil.ReadAll(req.Body)
 	defer req.Body.Close()

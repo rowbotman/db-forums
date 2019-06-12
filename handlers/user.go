@@ -11,8 +11,6 @@ import (
 )
 
 func userGet(w http.ResponseWriter, req *http.Request, ps denco.Params) {
-	//params := mux.Vars(req)
-	//nickname, ok := params["nickname"]
 	nickname := ps.Get("nickname")
 	if len(nickname) <= 0 {
 		http.Error(w, "can't parse nickname", http.StatusBadRequest)
@@ -29,7 +27,6 @@ func userGet(w http.ResponseWriter, req *http.Request, ps denco.Params) {
 }
 
 func userCreate(w http.ResponseWriter,req *http.Request, ps denco.Params) {
-	//params := mux.Vars(req)
 	body, err := ioutil.ReadAll(req.Body)
 	defer req.Body.Close()
 	if err != nil {
@@ -38,7 +35,6 @@ func userCreate(w http.ResponseWriter,req *http.Request, ps denco.Params) {
 	}
 
 	data := db.User{}
-	//data.Nickname, _ = params["nickname"]
 	data.Nickname = ps.Get("nickname")
 	err = json.Unmarshal(body, &data)
 	if err != nil {
@@ -82,8 +78,6 @@ func userCreate(w http.ResponseWriter,req *http.Request, ps denco.Params) {
 }
 
 func userPost(w http.ResponseWriter, req *http.Request, ps denco.Params) {
-	//params := mux.Vars(req)
-	//nickname, _ := params["nickname"]
 	nickname := ps.Get("nickname")
 	body, err := ioutil.ReadAll(req.Body)
 	defer req.Body.Close()
@@ -124,9 +118,6 @@ func userPost(w http.ResponseWriter, req *http.Request, ps denco.Params) {
 
 func UserHandler(router **denco.Mux) []denco.Handler {
 	fmt.Println("user handlers initialized")
-	//(*router).POST("/api/user/:nickname/create",  userCreate)
-	//(*router).GET( "/api/user/:nickname/profile", userGet)
-	//(*router).POST("/api/user/:nickname/profile", userPost)
 	return []denco.Handler{
 		(*router).POST("/api/user/:nickname/create",  userCreate),
 		(*router).GET( "/api/user/:nickname/profile", userGet),

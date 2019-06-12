@@ -11,10 +11,10 @@ import (
 )
 
 func postChangeInfo(w http.ResponseWriter, req *http.Request, ps denco.Params) {
+	//log.Println("post change info:", req.RequestURI)
 	var data db.DataForUpdPost
 	var err error
 	_= json.NewDecoder(req.Body).Decode(&data)
-	//params := mux.Vars(req)
 	id := int64(0)
 	if postId := ps.Get("id"); len(postId) <= 0 {
 		http.Error(w, "Can't parse id", http.StatusBadRequest)
@@ -47,7 +47,7 @@ func postChangeInfo(w http.ResponseWriter, req *http.Request, ps denco.Params) {
 }
 
 func PostGetInfo(w http.ResponseWriter, req *http.Request, ps denco.Params) {
-	//params := mux.Vars(req)
+	//log.Println("post get info:", req.RequestURI)
 	id := int64(0)
 	var err error
 	if postId := ps.Get("id"); len(postId) <= 0 {
