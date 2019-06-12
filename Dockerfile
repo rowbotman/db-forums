@@ -1,3 +1,9 @@
+FROM golang:1.12-stretch AS lang
+WORKDIR /home/db-forums
+COPY . .
+RUN go get -d && go build -v
+
+
 FROM ubuntu:18.04
 MAINTAINER Andrey
 ENV DEBIAN_FRONTEND noninteractive
@@ -7,12 +13,16 @@ RUN apt-get update && \
     apt-get upgrade -y && \
     apt-get install -y git
 
-# Клонируем проект
+## Клонируем проект
 USER root
-#RUN git clone https://github.com/rowbotman/db-forums.git
+##RUN git clone https://github.com/rowbotman/db-forums.git
+#WORKDIR /home/db-forums
+#COPY . .
+#RUN go get -d && go build -v
+#RUN cd /home/db-forums
 WORKDIR /home/db-forums
-COPY . .
 RUN cd /home/db-forums
+COPY . .
 
 # Устанавливаем PostgreSQL
 RUN apt-get -y update
@@ -45,22 +55,24 @@ RUN echo "local all all md5" > /etc/postgresql/$PGVERSION/main/pg_hba.conf &&\
 VOLUME  ["/etc/postgresql", "/var/log/postgresql", "/var/lib/postgresql"]
 EXPOSE 5432
 
-# Устанавливаем Golang 
-ENV GOVERSION 1.12.3
-USER root
-RUN wget https://storage.googleapis.com/golang/go$GOVERSION.linux-amd64.tar.gz
-RUN tar -C /usr/local -xzf go$GOVERSION.linux-amd64.tar.gz && \
-    mkdir go && mkdir go/src && mkdir go/bin && mkdir go/pkg
-ENV GOROOT /usr/local/go
-ENV GOPATH /opt/go
-ENV PATH $GOROOT/bin:$GOPATH/bin:$PATH
-RUN mkdir -p "$GOPATH/bin" "$GOPATH/src"
-RUN apt-get -y install gcc musl-dev && GO12MODULE=on
-ENV GOBIN $GOPATH/bin
-RUN go get
-RUN go build .
+## Устанавливаем Golang
+#ENV GOVERSION 1.12.3
+#USER root
+#RUN wget https://storage.googleapis.com/golang/go$GOVERSION.linux-amd64.tar.gz
+#RUN tar -C /usr/local -xzf go$GOVERSION.linux-amd64.tar.gz && \
+#    mkdir go && mkdir go/src && mkdir go/bin && mkdir go/pkg
+#ENV GOROOT /usr/local/go
+#ENV GOPATH /opt/go
+#ENV PATH $GOROOT/bin:$GOPATH/bin:$PATH
+#RUN mkdir -p "$GOPATH/bin" "$GOPATH/src"
+#RUN apt-get -y install gcc musl-dev && GO12MODULE=on
+#ENV GOBIN $GOPATH/bin
+#RUN go get
+#RUN go build .
 EXPOSE 5000
 RUN echo "./config/postgresql.conf" >> /etc/postgresql/$PGVERSION/main/postgresql.conf
 
+WORKDIR /home/db-forums
+COPY --from=lang /home/db-forums .
 # Запускаем PostgreSQL и api сервер
 CMD service postgresql start && ./db-forums
