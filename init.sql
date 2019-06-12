@@ -1,7 +1,19 @@
 -- CREATE DATABASE park_forum WITH OWNER = postgres;
 
 CREATE EXTENSION IF NOT EXISTS CITEXT;
+DROP INDEX IF EXISTS forum_slug_idx;
+DROP INDEX IF EXISTS profile_nick_idx;
+DROP INDEX IF EXISTS profile_email_idx;
+DROP INDEX IF EXISTS vote_id_thread_idx;
+DROP INDEX IF EXISTS thread_userid_idx;
+DROP INDEX IF EXISTS thread_forumid_idx;
+DROP INDEX IF EXISTS post_path_idx;
+DROP INDEX IF EXISTS forum_id_idx;
+DROP INDEX IF EXISTS thread_id_idx;
+DROP INDEX IF EXISTS post_id_idx;
+DROP INDEX IF EXISTS post_forumid_idx;
 
+TRUNCATE TABLE profile, forum, thread, vote;
 DROP TABLE    IF EXISTS vote             CASCADE;
 DROP TABLE    IF EXISTS post             CASCADE;
 DROP TABLE    IF EXISTS thread           CASCADE;
@@ -13,9 +25,10 @@ DROP FUNCTION IF EXISTS add_to_thread();
 DROP FUNCTION IF EXISTS add_path();
 -- DROP TABLE IF EXISTS  CASCADE;
 
-CREATE ROLE park_forum;
+-- CREATE ROLE park_forum;
+-- CREATE USER park WITH SUPERUSER PASSWORD 'admin';
 
-CREATE TABLE IF NOT EXISTS profile
+CREATE UNLOGGED TABLE IF NOT EXISTS profile
 (
   uid       SERIAL                                              PRIMARY KEY,
   nickname  CITEXT       UNIQUE NOT NULL CHECK (nickname <> ''),
@@ -23,9 +36,9 @@ CREATE TABLE IF NOT EXISTS profile
   about     VARCHAR(512)                                         DEFAULT '',
   email     VARCHAR(256) UNIQUE NOT NULL CHECK (email <> '')
 --   email     CITEXT UNIQUE       NOT NULL CHECK (email <> '')
-);
+) WITH (autovacuum_enabled = off);
 
-CREATE TABLE IF NOT EXISTS forum
+CREATE UNLOGGED TABLE IF NOT EXISTS forum
 (
   uid       SERIAL                                          PRIMARY KEY,
   title     VARCHAR(128)        NOT NULL CHECK ( title <> '' ),
@@ -33,9 +46,9 @@ CREATE TABLE IF NOT EXISTS forum
 --   slug      CITEXT       UNIQUE NOT NULL,
   slug      VARCHAR(256) UNIQUE NOT NULL,
   FOREIGN   KEY (author_id) REFERENCES profile (uid) -- попробовать убрать
-);
+) WITH (autovacuum_enabled = off);
 
-CREATE TABLE IF NOT EXISTS thread
+CREATE UNLOGGED TABLE IF NOT EXISTS thread
 (
   uid      SERIAL                                            PRIMARY KEY,
   user_id  INT                         NOT NULL,
@@ -49,9 +62,9 @@ CREATE TABLE IF NOT EXISTS thread
 
   FOREIGN  KEY (user_id)  REFERENCES profile (uid),
   FOREIGN  KEY (forum_id) REFERENCES forum   (uid)
-);
+) WITH (autovacuum_enabled = off);
 
-CREATE TABLE IF NOT EXISTS post
+CREATE UNLOGGED TABLE IF NOT EXISTS post
 (
   uid       SERIAL                                          PRIMARY KEY,
   parent_id INT                          NOT NULL DEFAULT 0,
@@ -61,14 +74,14 @@ CREATE TABLE IF NOT EXISTS post
   thread_id INT                          NOT NULL,
   message   VARCHAR(2048)                NOT NULL,
   is_edited BOOLEAN                               DEFAULT FALSE,
-  created   TIMESTAMP(3)  WITH TIME ZONE NOT NULL DEFAULT current_timestamp,
-  FOREIGN   KEY (forum_id)  REFERENCES forum   (uid),
-  FOREIGN   KEY (user_id)   REFERENCES profile (uid)
+  created   TIMESTAMP(3)  WITH TIME ZONE NOT NULL DEFAULT current_timestamp
+--   FOREIGN   KEY (forum_id)  REFERENCES forum   (uid),
+--   FOREIGN   KEY (user_id)   REFERENCES profile (uid)
 --   FOREIGN   KEY (parent_id) REFERENCES post    (uid),
 --   FOREIGN   KEY (thread_id) REFERENCES thread  (uid)
-);
+) WITH (autovacuum_enabled = off);
 
-CREATE TABLE IF NOT EXISTS vote
+CREATE UNLOGGED TABLE IF NOT EXISTS vote
 (
   user_id   INT           NOT NULL,
   thread_id INT           NOT NULL,
@@ -77,7 +90,7 @@ CREATE TABLE IF NOT EXISTS vote
 
   FOREIGN KEY (user_id)   REFERENCES profile (uid) ON DELETE CASCADE,
   FOREIGN KEY (thread_id) REFERENCES thread  (uid) ON DELETE CASCADE
-);
+) WITH (autovacuum_enabled = off);
 
 
 CREATE OR REPLACE FUNCTION add_to_thread() RETURNS TRIGGER AS $$
@@ -142,27 +155,23 @@ CREATE TRIGGER t_post
 -- vote user_id = and thread_id = +1
 -- profile lower(nickname) = or lower(email) = +1
 -- profile lower(email) = +1
-DROP INDEX IF EXISTS forum_slug_idx;
-DROP INDEX IF EXISTS profile_nick_idx;
-DROP INDEX IF EXISTS profile_email_idx;
-DROP INDEX IF EXISTS vote_id_thread_idx;
-DROP INDEX IF EXISTS thread_userid_idx;
-DROP INDEX IF EXISTS thread_forumid_idx;
-DROP INDEX IF EXISTS post_path_idx;
-DROP INDEX IF EXISTS forum_id_idx;
-DROP INDEX IF EXISTS thread_id_idx;
-DROP INDEX IF EXISTS post_id_idx;
 
-CREATE INDEX IF NOT EXISTS forum_slug_idx     ON forum(LOWER(slug));
-CREATE INDEX IF NOT EXISTS profile_nick_idx   ON profile(nickname);
-CREATE INDEX IF NOT EXISTS profile_email_idx  ON profile(LOWER(email));
-CREATE INDEX IF NOT EXISTS vote_id_thread_idx ON vote(user_id, thread_id);
-CREATE INDEX IF NOT EXISTS thread_userid_idx  ON thread(user_id);
-CREATE INDEX IF NOT EXISTS thread_forumid_idx ON thread(forum_id);
--- CREATE INDEX IF NOT EXISTS post_path_idx   ON post(path);
-CREATE INDEX IF NOT EXISTS forum_id_idx       ON forum(uid);
-CREATE INDEX IF NOT EXISTS thread_id_idx      ON thread(uid);
-CREATE INDEX IF NOT EXISTS post_id_idx        ON post(uid);
+
+CREATE INDEX IF NOT EXISTS forum_slug_idx      ON forum(LOWER(slug));
+CREATE INDEX IF NOT EXISTS profile_nick_idx    ON profile(nickname);
+CREATE INDEX IF NOT EXISTS profile_email_idx   ON profile(LOWER(email));
+CREATE INDEX IF NOT EXISTS profile_lownick_idx ON profile(LOWER(nickname));
+CREATE INDEX IF NOT EXISTS profile_id_idx      ON profile(uid); -- ?
+CREATE INDEX IF NOT EXISTS vote_id_thread_idx  ON vote(user_id, thread_id);
+CREATE INDEX IF NOT EXISTS thread_userid_idx   ON thread(user_id);
+CREATE INDEX IF NOT EXISTS thread_forumid_idx  ON thread(forum_id);
+CREATE INDEX IF NOT EXISTS thread_slug_idx     ON thread USING HASH(LOWER(slug));
+-- CREATE INDEX IF NOT EXISTS post_path_idx       ON post(path);
+CREATE INDEX IF NOT EXISTS forum_id_idx        ON forum(uid);
+CREATE INDEX IF NOT EXISTS thread_id_idx       ON thread(uid);
+CREATE INDEX IF NOT EXISTS post_id_idx         ON post(uid);
+-- CREATE INDEX IF NOT EXISTS post_forumid_idx    ON post(forum_id);
+-- CREATE INDEX IF NOT EXISTS post_idincl_idx ON post(uid) INCLUDE (path, thread_id, forum_id);
 
 
 GRANT ALL PRIVILEGES ON DATABASE park_forum TO park_forum;--why we granted privileges to park_forum if

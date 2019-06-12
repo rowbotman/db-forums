@@ -100,7 +100,17 @@ func InsertNewPosts(slugOrId string, posts []Post) ([]Post, error) {
 			errors.New("Can't find post thread by id: " + slugOrId)
 	}
 
-	sqlStatement := `INSERT INTO post VALUES (default, $6, array[0], $1, $2, $3, $4, default, $5) RETURNING uid`
+	sqlForPostData := `SELECT slug FROM forum WHERE uid = $1;`
+	forum := ""
+	err = DB.QueryRow(sqlForPostData, thread.ForumId).Scan(&forum)
+	if err == pgx.ErrNoRows {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+
+	sqlStatement := `INSERT INTO post(uid, parent_id, path, forum_id, user_id, thread_id, message, is_edited, created)
+						VALUES (default, $6, array[0], $1, $2, $3, $4, default, $5) RETURNING uid;`
 	updPosts := []Post{}
 	for _, post := range posts {
 		userData, err := SelectUser(post.Author)
@@ -120,19 +130,8 @@ func InsertNewPosts(slugOrId string, posts []Post) ([]Post, error) {
 			return nil, err
 		}
 		post.ThreadId = thread.Uid
-		sqlForPostData := `
-  SELECT f.slug, p.created FROM post p
-  JOIN forum f ON (p.forum_id = f.uid)
-  WHERE p.uid = $1`
-		row = DB.QueryRow(sqlForPostData, post.Uid)
-		err = row.Scan(
-			&post.Forum,
-			&post.Created)
-		if err == pgx.ErrNoRows {
-			return nil, nil
-		} else if err != nil {
-			return nil, err
-		}
+		post.Forum = forum
+		post.Created = curTime
 		updPosts = append(updPosts, post)
 	}
 	return updPosts, nil
