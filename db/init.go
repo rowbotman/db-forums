@@ -1,17 +1,18 @@
 package db
 
 import (
-	"gopkg.in/jackc/pgx.v2"
+	//"gopkg.in/jackc/pgx.v2"
+	"github.com/jackc/pgx"
 )
 
-type NullInt64 pgx.NullInt64
-
-type NullBool pgx.NullBool
-
-type NullFloat64 pgx.NullFloat64
-
-type NullTime pgx.NullTime
-
-type NullString pgx.NullString
+//type NullInt64 pgx.NullInt64
+//
+//type NullBool pgx.NullBool
+//
+//type NullFloat64 pgx.NullFloat64
+//
+//type NullTime pgx.NullTime
+//
+//type NullString pgx.NullString
 
 var DB *pgx.ConnPool

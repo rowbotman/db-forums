@@ -1,13 +1,14 @@
 package db
 
 import (
+	"errors"
 	"fmt"
+	"github.com/jackc/pgx"
 	json "github.com/mailru/easyjson"
 	//"encoding/json"
 	"github.com/rowbotman/db-forums/models"
 	"net/http"
-	"errors"
-	"gopkg.in/jackc/pgx.v2"
+	//"gopkg.in/jackc/pgx.v2"
 	"log"
 	"strconv"
 	"time"
