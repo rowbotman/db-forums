@@ -4,7 +4,8 @@ import (
 	//"database/sql"
 	"errors"
 	"github.com/rowbotman/db-forums/models"
-	"gopkg.in/jackc/pgx.v2"
+	//"gopkg.in/jackc/pgx.v2"
+	"github.com/jackc/pgx"
 )
 
 

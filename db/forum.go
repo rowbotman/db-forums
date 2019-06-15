@@ -2,8 +2,9 @@ package db
 
 import (
 	"errors"
+	"github.com/jackc/pgx"
 	"github.com/rowbotman/db-forums/models"
-	"gopkg.in/jackc/pgx.v2"
+	//"gopkg.in/jackc/pgx.v2"
 	"strconv"
 )
 

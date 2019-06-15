@@ -1,11 +1,11 @@
 package db
 
 import (
+	"errors"
+	"github.com/jackc/pgx"
 	//"encoding/json"
 	json "github.com/mailru/easyjson"
-	"errors"
 	"github.com/rowbotman/db-forums/models"
-	"gopkg.in/jackc/pgx.v2"
 	"net/http"
 	"strconv"
 )

@@ -1,10 +1,11 @@
 package main
 
 import (
+	"github.com/jackc/pgx"
+	"github.com/naoina/denco"
 	"github.com/rowbotman/db-forums/db"
 	"github.com/rowbotman/db-forums/handlers"
-	"github.com/naoina/denco"
-	"gopkg.in/jackc/pgx.v2"
+	//"gopkg.in/jackc/pgx.v2"
 	"log"
 	"net/http"
 )
