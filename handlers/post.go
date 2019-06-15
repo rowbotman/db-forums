@@ -7,14 +7,14 @@ import (
 	"github.com/naoina/denco"
 	"github.com/rowbotman/db-forums/db"
 	"github.com/rowbotman/db-forums/models"
-	"log"
+	//"log"
 	"net/http"
 	"strconv"
 	"strings"
 )
 
 func PostChangeInfo(w http.ResponseWriter, req *http.Request, ps denco.Params) {
-	log.Println("post change info:", req.RequestURI)
+	//log.Println("post change info:", req.RequestURI)
 	var data models.DataForUpdPost
 	var err error
 	//_= json.NewDecoder(req.Body).Decode(&data)
@@ -51,7 +51,7 @@ func PostChangeInfo(w http.ResponseWriter, req *http.Request, ps denco.Params) {
 }
 
 func PostGetInfo(w http.ResponseWriter, req *http.Request, ps denco.Params) {
-	log.Println("post get info:", req.RequestURI)
+	//log.Println("post get info:", req.RequestURI)
 	id := int64(0)
 	var err error
 	if postId := ps.Get("id"); len(postId) <= 0 {

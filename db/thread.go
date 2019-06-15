@@ -9,7 +9,7 @@ import (
 	"github.com/rowbotman/db-forums/models"
 	"net/http"
 	//"gopkg.in/jackc/pgx.v2"
-	"log"
+	//"log"
 	"strconv"
 	"time"
 )
@@ -210,7 +210,7 @@ func UpdateThread(slugOrId string, thread *models.ThreadInfo) error {
 			break
 		}
 		default:
-			log.Println("something got error in switch")
+			//log.Println("something got error in switch")
 		}
 		if err != nil {
 			return err
@@ -240,9 +240,9 @@ func SelectThreadPosts(slugOrid string, limit int32, since int64,
 		isId = false
 	}
 	thread := models.ThreadInfo{}
-	log.Println("start")
+	//log.Println("start")
 	err = SelectFromThread(slugOrid, isId, &thread)
-	log.Println("finish")
+	//log.Println("finish")
 	if err != nil && thread.Uid == -1 {
 		return models.Posts{{Uid: -1}}, err
 	}
@@ -358,7 +358,7 @@ func SelectThreadPosts(slugOrid string, limit int32, since int64,
 		return nil, err
 	}
 	//fmt.Println(posts)
-	//log.Println(posts)
+	////log.Println(posts)
 	output, err := json.Marshal(posts)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

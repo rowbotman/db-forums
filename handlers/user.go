@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/rowbotman/db-forums/db"
 	"github.com/rowbotman/db-forums/models"
-	"log"
+	//"log"
 
 	//"github.com/go-zoo/bone"
 	"github.com/naoina/denco"
@@ -15,7 +15,7 @@ import (
 )
 
 func userGet(w http.ResponseWriter, req *http.Request, ps denco.Params) {
-	log.Println("user get", req.RequestURI)
+	//log.Println("user get", req.RequestURI)
 	nickname := ps.Get("nickname")
 	if len(nickname) <= 0 {
 		http.Error(w, "can't parse nickname", http.StatusBadRequest)
@@ -33,7 +33,7 @@ func userGet(w http.ResponseWriter, req *http.Request, ps denco.Params) {
 }
 
 func userCreate(w http.ResponseWriter,req *http.Request, ps denco.Params) {
-	log.Println("user create", req.RequestURI)
+	//log.Println("user create", req.RequestURI)
 	//body, err := ioutil.ReadAll(req.Body)
 	//defer req.Body.Close()
 	//if err != nil {
@@ -86,7 +86,7 @@ func userCreate(w http.ResponseWriter,req *http.Request, ps denco.Params) {
 }
 
 func userPost(w http.ResponseWriter, req *http.Request, ps denco.Params) {
-	log.Println("user post", req.RequestURI)
+	//log.Println("user post", req.RequestURI)
 
 	nickname := ps.Get("nickname")
 	//body, err := ioutil.ReadAll(req.Body)
