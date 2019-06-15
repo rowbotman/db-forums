@@ -1,25 +1,29 @@
 package handlers
 
 import (
-	"../db"
-	"encoding/json"
 	"fmt"
+	json "github.com/mailru/easyjson"
 	"github.com/naoina/denco"
-	"io/ioutil"
-	//"log"
+	"github.com/rowbotman/db-forums/db"
+	"github.com/rowbotman/db-forums/models"
+	//"io/ioutil"
+	"log"
 	"net/http"
 	"strconv"
 )
 
 func forumCreate(w http.ResponseWriter, req *http.Request, _ denco.Params) {
-	var data db.DataForNewForum
-	_ = json.NewDecoder(req.Body).Decode(&data)
+	log.Println("forum create", req.RequestURI)
+	var data models.DataForNewForum
+	_ = json.UnmarshalFromReader(req.Body, &data)
+	//_ = json.NewDecoder(req.Body).Decode(&data)
 	forum, err := db.InsertIntoForum(data)
 	if err != nil {
 		if len(forum.Slug) > 0 {
 			w.Header().Set("content-type", "application/json")
 			w.WriteHeader(http.StatusConflict)
-			_ = json.NewEncoder(w).Encode(forum)
+			_, _, _ = json.MarshalToHTTPResponseWriter(forum, w)
+			//_ = json.NewEncoder(w).Encode(forum)
 			return
 		}
 		Get404(w, err.Error())
@@ -27,10 +31,13 @@ func forumCreate(w http.ResponseWriter, req *http.Request, _ denco.Params) {
 	}
 	w.Header().Set("content-type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(w).Encode(forum)
+	_, _, _ = json.MarshalToHTTPResponseWriter(forum, w)
+	//_, _ = json.MarshalToWriter(forum, w)
+	//_ = json.NewEncoder(w).Encode(forum)
 }
 
 func forumGetInfo(w http.ResponseWriter,req *http.Request, ps denco.Params) {
+	log.Println("forum get info", req.RequestURI)
 	forumSlug := ps.Get("slug")
 	if len(forumSlug) <= 0 {
 		http.Error(w, "incorrect slug", http.StatusBadRequest)
@@ -56,6 +63,7 @@ func forumGetInfo(w http.ResponseWriter,req *http.Request, ps denco.Params) {
 }
 
 func forumGetUsers(w http.ResponseWriter, req *http.Request, ps denco.Params) {
+	log.Println("forum get users", req.RequestURI)
 	//log.Println(req.RequestURI)
 	slugOrId := ps.Get("slug")
 	var err error
@@ -81,7 +89,8 @@ func forumGetUsers(w http.ResponseWriter, req *http.Request, ps denco.Params) {
 	if err != nil {
 		w.Header().Set("content-type", "application/json")
 		w.WriteHeader(http.StatusNotFound)
-		_ = json.NewEncoder(w).Encode(NotFoundPage{err.Error()})
+		_, _, _ = json.MarshalToHTTPResponseWriter(models.NotFoundPage{err.Error()}, w)
+		//_ = json.NewEncoder(w).Encode(models.NotFoundPage{err.Error()})
 		return
 	}
 
@@ -138,20 +147,22 @@ func forumGetThreads(w http.ResponseWriter,req *http.Request, ps denco.Params) {
 }
 
 func forumCreateThread(w http.ResponseWriter,req *http.Request, ps denco.Params) {
+	log.Println("forum create thread", req.RequestURI)
 	slugOrId := ps.Get("slug")
-	data := db.ThreadInfo{}
-	body, err := ioutil.ReadAll(req.Body)
-	defer req.Body.Close()
+	data := models.ThreadInfo{}
+	//body, err := ioutil.ReadAll(req.Body)
+	//defer req.Body.Close()
+	err := json.UnmarshalFromReader(req.Body, &data)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return
 	}
 
-	err = json.Unmarshal(body, &data, )
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
+	//err = json.Unmarshal(body, &data)
+	//if err != nil {
+	//	http.Error(w, err.Error(), 500)
+	//	return
+	//}
 	isMin := false
 	if data.Slug == nil {
 		isMin = true
@@ -161,7 +172,7 @@ func forumCreateThread(w http.ResponseWriter,req *http.Request, ps denco.Params)
 		if  err.Error() == "thread exist" {
 			output := []byte{}
 			if isMin {
-				output, err = json.Marshal(db.ThreadInfoMin{
+				output, err = json.Marshal(models.ThreadInfoMin{
 					Uid:     thread.Uid,
 					Title:   thread.Title,
 					Author:  thread.Author,
@@ -191,7 +202,7 @@ func forumCreateThread(w http.ResponseWriter,req *http.Request, ps denco.Params)
 	}
 	output := []byte{}
 	if isMin {
-		output, err = json.Marshal(db.ThreadInfoMin{
+		output, err = json.Marshal(models.ThreadInfoMin{
 			Uid:     thread.Uid,
 			Title:   thread.Title,
 			Author:  thread.Author,

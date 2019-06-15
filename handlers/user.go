@@ -1,16 +1,21 @@
 package handlers
 
 import (
-	"../db"
-	"encoding/json"
+	json "github.com/mailru/easyjson"
+	//"encoding/json"
 	"fmt"
+	"github.com/rowbotman/db-forums/db"
+	"github.com/rowbotman/db-forums/models"
+	"log"
+
 	//"github.com/go-zoo/bone"
 	"github.com/naoina/denco"
-	"io/ioutil"
+	//"io/ioutil"
 	"net/http"
 )
 
 func userGet(w http.ResponseWriter, req *http.Request, ps denco.Params) {
+	log.Println("user get", req.RequestURI)
 	nickname := ps.Get("nickname")
 	if len(nickname) <= 0 {
 		http.Error(w, "can't parse nickname", http.StatusBadRequest)
@@ -23,25 +28,28 @@ func userGet(w http.ResponseWriter, req *http.Request, ps denco.Params) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(user)
+	_, _, _ = json.MarshalToHTTPResponseWriter(user, w)
+	//_ = json.NewEncoder(w).Encode(user)
 }
 
 func userCreate(w http.ResponseWriter,req *http.Request, ps denco.Params) {
-	body, err := ioutil.ReadAll(req.Body)
-	defer req.Body.Close()
+	log.Println("user create", req.RequestURI)
+	//body, err := ioutil.ReadAll(req.Body)
+	//defer req.Body.Close()
+	//if err != nil {
+	//	http.Error(w, err.Error(), 500)
+	//	return
+	//}
+
+	data := models.User{}
+	//err = json.Unmarshal(body, &data)
+	err := json.UnmarshalFromReader(req.Body, &data)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return
 	}
 
-	data := db.User{}
 	data.Nickname = ps.Get("nickname")
-	err = json.Unmarshal(body, &data)
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
-
 	newUser, err := db.InsertIntoUser(data)
 	if err != nil {
 		if len(newUser) > 0 {
@@ -78,32 +86,38 @@ func userCreate(w http.ResponseWriter,req *http.Request, ps denco.Params) {
 }
 
 func userPost(w http.ResponseWriter, req *http.Request, ps denco.Params) {
+	log.Println("user post", req.RequestURI)
+
 	nickname := ps.Get("nickname")
-	body, err := ioutil.ReadAll(req.Body)
-	defer req.Body.Close()
+	//body, err := ioutil.ReadAll(req.Body)
+	//defer req.Body.Close()
+	//if err != nil {
+	//	http.Error(w, err.Error(), 500)
+	//	return
+	//}
+
+	data := models.User{}
+	//err = json.Unmarshal(body, &data)
+	err := json.UnmarshalFromReader(req.Body, &data)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return
 	}
 
-	data := db.User{}
 	data.Nickname = nickname
-	err = json.Unmarshal(body, &data)
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
-
 	user, err := db.UpdateUser(data)
 	if err != nil {
 		w.Header().Set("content-type", "application/json")
 		if err.Error() == "no rows" {
 			w.WriteHeader(http.StatusNotFound)
-			_ = json.NewEncoder(w).Encode(NotFoundPage{"Can't find user by nickname: " + nickname})
+			_, _, _ = json.MarshalToHTTPResponseWriter(
+				models.NotFoundPage{"Can't find user by nickname: " + nickname}, w)
+			//_ = json.NewEncoder(w).Encode(NotFoundPage{"Can't find user by nickname: " + nickname})
 			return
 		}
 		w.WriteHeader(http.StatusConflict)
-		_ = json.NewEncoder(w).Encode(NotFoundPage{err.Error()})
+		_, _, _ = json.MarshalToHTTPResponseWriter(models.NotFoundPage{err.Error()}, w)
+		//_ = json.NewEncoder(w).Encode(NotFoundPage{err.Error()})
 		return
 	}
 	output, err := json.Marshal(user)

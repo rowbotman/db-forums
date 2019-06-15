@@ -1,8 +1,8 @@
 package main
 
 import (
-	"./db"
-	"./handlers"
+	"github.com/rowbotman/db-forums/db"
+	"github.com/rowbotman/db-forums/handlers"
 	"github.com/naoina/denco"
 	"gopkg.in/jackc/pgx.v2"
 	"log"
@@ -18,6 +18,7 @@ const (
 )
 
 func main() {
+	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
 	pgxConfig := pgx.ConnConfig{
 		Host:     host,
 		Port:     port,
@@ -27,9 +28,6 @@ func main() {
 	}
 	pgxConnPoolConfig := pgx.ConnPoolConfig{
 		ConnConfig: pgxConfig,
-		MaxConnections: 3, // \
-		AfterConnect: nil, //  - delete it
-		AcquireTimeout: 0, // /
 	}
 	var err error
 	db.DB, err = pgx.NewConnPool(pgxConnPoolConfig)

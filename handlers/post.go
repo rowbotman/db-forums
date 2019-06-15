@@ -1,20 +1,24 @@
 package handlers
 
 import (
-	"../db"
-	"encoding/json"
 	"fmt"
+	//"encoding/json"
+	json "github.com/mailru/easyjson"
 	"github.com/naoina/denco"
+	"github.com/rowbotman/db-forums/db"
+	"github.com/rowbotman/db-forums/models"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
 )
 
-func postChangeInfo(w http.ResponseWriter, req *http.Request, ps denco.Params) {
-	//log.Println("post change info:", req.RequestURI)
-	var data db.DataForUpdPost
+func PostChangeInfo(w http.ResponseWriter, req *http.Request, ps denco.Params) {
+	log.Println("post change info:", req.RequestURI)
+	var data models.DataForUpdPost
 	var err error
-	_= json.NewDecoder(req.Body).Decode(&data)
+	//_= json.NewDecoder(req.Body).Decode(&data)
+	_ = json.UnmarshalFromReader(req.Body, &data)
 	id := int64(0)
 	if postId := ps.Get("id"); len(postId) <= 0 {
 		http.Error(w, "Can't parse id", http.StatusBadRequest)
@@ -47,7 +51,7 @@ func postChangeInfo(w http.ResponseWriter, req *http.Request, ps denco.Params) {
 }
 
 func PostGetInfo(w http.ResponseWriter, req *http.Request, ps denco.Params) {
-	//log.Println("post get info:", req.RequestURI)
+	log.Println("post get info:", req.RequestURI)
 	id := int64(0)
 	var err error
 	if postId := ps.Get("id"); len(postId) <= 0 {
@@ -64,7 +68,7 @@ func PostGetInfo(w http.ResponseWriter, req *http.Request, ps denco.Params) {
 	_ = req.ParseForm() // parses request body and query and stores result in r.Form
 	var array []string
 	array = strings.Split(req.FormValue("related"), ",")
-	details, err := db.GetPostInfo(id, array)
+	details, err := db.GetPostInfo(id, array, w)
 	if err != nil {
 		if details["err"] == true {
 			Get404(w, err.Error())
@@ -73,21 +77,11 @@ func PostGetInfo(w http.ResponseWriter, req *http.Request, ps denco.Params) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	output, err := json.Marshal(details)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("content-type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write(output)
 }
 
 func PostHandler(router **denco.Mux) []denco.Handler {
 	fmt.Println("posts handlers initialized")
 	return []denco.Handler{
-		(*router).POST("/api/post/:id/details", postChangeInfo),
+		(*router).POST("/api/post/:id/details", PostChangeInfo),
 		(*router).GET( "/api/post/:id/details", PostGetInfo)}
 }
