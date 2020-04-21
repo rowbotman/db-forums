@@ -1,15 +1,14 @@
 package db
 
 import (
+	"db-park/models"
 	"errors"
 	"github.com/jackc/pgx"
 	//"encoding/json"
 	json "github.com/mailru/easyjson"
-	"github.com/rowbotman/db-forums/models"
 	"net/http"
 	"strconv"
 )
-
 
 func UpdatePost(data models.DataForUpdPost) (models.Post, error) {
 	sqlStatement := `
@@ -49,8 +48,6 @@ func UpdatePost(data models.DataForUpdPost) (models.Post, error) {
 	return post, nil
 }
 
-
-
 func GetPostInfo(postId int64, strArray []string, w http.ResponseWriter) (map[string]interface{}, error) {
 	sqlStatement := `
   SELECT p.uid, p.parent_id, u.nickname, p.message, p.is_edited, f.slug, f.uid, p.thread_id, p.created 
@@ -80,30 +77,33 @@ func GetPostInfo(postId int64, strArray []string, w http.ResponseWriter) (map[st
 	if len(strArray) > 0 && len(strArray[0]) > 0 {
 		for _, obj := range strArray {
 			switch obj {
-			case "user": {
-				userData, err := SelectUser(post.Author)
-				if err != nil {
-					return models.FullThreadInfo{}, err
+			case "user":
+				{
+					userData, err := SelectUser(post.Author)
+					if err != nil {
+						return models.FullThreadInfo{}, err
+					}
+					fullInfo["author"] = userData
 				}
-				fullInfo["author"] = userData
-			}
-			case "forum": {
-				id := strconv.Itoa(int(forumId))
-				forumData, err := SelectForumInfo(id, true)
-				if err != nil {
-					return models.FullThreadInfo{}, err
+			case "forum":
+				{
+					id := strconv.Itoa(int(forumId))
+					forumData, err := SelectForumInfo(id, true)
+					if err != nil {
+						return models.FullThreadInfo{}, err
+					}
+					fullInfo["forum"] = forumData
 				}
-				fullInfo["forum"] = forumData
-			}
-			case "thread": {
-				id := strconv.FormatInt(post.ThreadId, 10)
-				threadData := models.ThreadInfo{}
-				err := SelectFromThread(id, true, &threadData)
-				if err != nil {
-					return models.FullThreadInfo{}, err
+			case "thread":
+				{
+					id := strconv.FormatInt(post.ThreadId, 10)
+					threadData := models.ThreadInfo{}
+					err := SelectFromThread(id, true, &threadData)
+					if err != nil {
+						return models.FullThreadInfo{}, err
+					}
+					fullInfo["thread"] = threadData
 				}
-				fullInfo["thread"] = threadData
-			}
 			}
 		}
 	}

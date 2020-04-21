@@ -18,7 +18,6 @@ type DataForNewForum struct {
 	Slug     string `json:"slug"`
 }
 
-
 //easyjson:json
 type Post struct {
 	Uid      int64     `json:"id,omitempty"`
@@ -37,7 +36,6 @@ type DataForUpdPost struct {
 	Message string `json:"message,omitempty"`
 }
 
-
 //easyjson:json
 type ServiceInfo struct {
 	User   int64 `json:"user"`
@@ -45,7 +43,6 @@ type ServiceInfo struct {
 	Thread int64 `json:"thread"`
 	Post   int64 `json:"post"`
 }
-
 
 type Thread struct {
 	Uid     int64     `json:"uid, omitempty"`
@@ -88,11 +85,11 @@ type VoteInfo struct {
 
 //easyjson:json
 type User struct {
-	Pk       int64      `json:"-"`         // why we used '-' here?
-	Nickname string     `json:"nickname,omitempty"`
-	Name     string     `json:"fullname,omitempty"`
-	About    string     `json:"about,omitempty"`
-	Email    string     `json:"email,omitempty"`
+	Pk       int64  `json:"-"` // why we used '-' here?
+	Nickname string `json:"nickname,omitempty"`
+	Name     string `json:"fullname,omitempty"`
+	About    string `json:"about,omitempty"`
+	Email    string `json:"email,omitempty"`
 }
 
 //easyjson:json
@@ -107,7 +104,7 @@ type NotFoundPage struct {
 	Message string `json:"message"`
 }
 
-func (us *User)IsEmpty() bool {
+func (us *User) IsEmpty() bool {
 	if len(us.Email) == 0 &&
 		len(us.Name) == 0 && len(us.About) == 0 {
 		return true

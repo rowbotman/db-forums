@@ -1,14 +1,12 @@
 package handlers
 
 import (
+	"db-park/models"
 	"encoding/json"
-	"github.com/rowbotman/db-forums/models"
 	"net/http"
 	"path"
 	"strings"
 )
-
-
 
 func ShiftPath(p string) (head, tail string) {
 	p = path.Clean("/" + p)

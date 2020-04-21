@@ -6,7 +6,7 @@ import (
 	"github.com/jackc/pgx"
 	json "github.com/mailru/easyjson"
 	//"encoding/json"
-	"github.com/rowbotman/db-forums/models"
+	"db-park/models"
 	"net/http"
 	//"gopkg.in/jackc/pgx.v2"
 	//"log"
@@ -45,12 +45,11 @@ func isParentPost(parentId int, thread int64) (ok bool) {
 	sqlStatement := `SELECT p.thread_id FROM post p WHERE p.uid = $1;`
 	threadId := int64(0)
 	err := DB.QueryRow(sqlStatement, parentId).Scan(&threadId)
-	if err != nil && parentId != 0{
+	if err != nil && parentId != 0 {
 		return false
 	}
 	return threadId == thread || threadId == 0
 }
-
 
 func InsertNewPosts(slugOrId string, posts models.Posts) (models.Posts, error) {
 	sqlTime := `SELECT current_timestamp(3);`
@@ -96,7 +95,7 @@ func InsertNewPosts(slugOrId string, posts models.Posts) (models.Posts, error) {
 		}
 		valuesStr += ` (default, default, array[0], `
 		for j := 1; j <= itemNum; j++ {
-			valuesStr += `$` + strconv.Itoa(i * itemNum + j)
+			valuesStr += `$` + strconv.Itoa(i*itemNum+j)
 			if j != itemNum {
 				valuesStr += `, `
 			}
@@ -106,12 +105,12 @@ func InsertNewPosts(slugOrId string, posts models.Posts) (models.Posts, error) {
 		posts[i].ThreadId = thread.Uid
 		valuesStr += ` ) `
 		values = append(values, thread.ForumId, userData.Pk, posts[i].ThreadId, posts[i].Message, posts[i].Created, posts[i].ParentId, posts[i].Author)
-		if i != postNum - 1 {
+		if i != postNum-1 {
 			valuesStr += ` , `
 		}
 	}
-	trans, _  := DB.Begin()
-	rows, err := trans.Query(sqlStatement + valuesStr + retId, values...)
+	trans, _ := DB.Begin()
+	rows, err := trans.Query(sqlStatement+valuesStr+retId, values...)
 	if err != nil {
 		_ = trans.Rollback()
 		return nil, err
@@ -197,18 +196,21 @@ func UpdateThread(slugOrId string, thread *models.ThreadInfo) error {
 	if status > 0 {
 		var err error
 		switch status {
-		case 1: {
-			_, err = DB.Exec(sqlStatement, thread.Title, existThread.Uid)
-			break
-		}
-		case 2: {
-			_, err = DB.Exec(sqlStatement, thread.Title, thread.Message, existThread.Uid)
-			break
-		}
-		case 3: {
-			_, err = DB.Exec(sqlStatement, thread.Message, existThread.Uid)
-			break
-		}
+		case 1:
+			{
+				_, err = DB.Exec(sqlStatement, thread.Title, existThread.Uid)
+				break
+			}
+		case 2:
+			{
+				_, err = DB.Exec(sqlStatement, thread.Title, thread.Message, existThread.Uid)
+				break
+			}
+		case 3:
+			{
+				_, err = DB.Exec(sqlStatement, thread.Message, existThread.Uid)
+				break
+			}
 		default:
 			//log.Println("something got error in switch")
 		}
@@ -231,7 +233,6 @@ func UpdateThread(slugOrId string, thread *models.ThreadInfo) error {
 	return nil
 }
 
-
 func SelectThreadPosts(slugOrid string, limit int32, since int64,
 	sort string, desc bool, w http.ResponseWriter) (models.Posts, error) {
 	_, err := strconv.ParseInt(slugOrid, 10, 64)
@@ -250,87 +251,90 @@ func SelectThreadPosts(slugOrid string, limit int32, since int64,
        p.message, p.is_edited,
        p.thread_id, p.created FROM post p `
 	/*
-	SELECT p.uid, p.path, p.parent_id, p.author, p.is_edited,
-	       p.thread_id, p.created FROM post p WHERE p.thread_id = 376
-			AND p.path[1] IN (
-				SELECT p.uid FROM post p WHERE array_length(p.path, 1) = 1
-					AND p.thread_id = 376
-					AND p.uid < (SELECT path[1] FROM post WHERE uid = 2974) ORDER BY p.path[1] LIMIT 3
-			) ORDER BY p.path[1] DESC, p.path;
-	 */
+		SELECT p.uid, p.path, p.parent_id, p.author, p.is_edited,
+		       p.thread_id, p.created FROM post p WHERE p.thread_id = 376
+				AND p.path[1] IN (
+					SELECT p.uid FROM post p WHERE array_length(p.path, 1) = 1
+						AND p.thread_id = 376
+						AND p.uid < (SELECT path[1] FROM post WHERE uid = 2974) ORDER BY p.path[1] LIMIT 3
+				) ORDER BY p.path[1] DESC, p.path;
+	*/
 	var rows *pgx.Rows
 	switch sort {
-	case "tree": {
-		sqlStatement += ` WHERE p.thread_id = $1 AND p.path `
-		if desc {
-			if since == 0 {
-				sqlStatement += ` >= ARRAY(SELECT uid FROM post ORDER BY uid ASC LIMIT 1)`
-			} else {
-				sqlStatement += ` < (SELECT path FROM post WHERE uid = $2) `
-			}
-		} else {
-			if since == 0 {
-				sqlStatement += ` >= ARRAY(SELECT uid FROM post ORDER BY uid ASC LIMIT 1)`
-			} else {
-				sqlStatement += ` > (SELECT path FROM post WHERE uid = $2) `
-
-			}
-		}
-		if desc {
-			sqlStatement += `ORDER BY p.path DESC, p.created DESC`
-		} else {
-			sqlStatement += `ORDER BY p.path, p.created ASC`
-		}
-		//fmt.Println(sqlStatement, thread.Uid, since)
-		if since > 0 {
-			sqlStatement += ` LIMIT $3;`
-			rows, err = DB.Query(sqlStatement, thread.Uid, since, limit)
-		} else {
-			sqlStatement += ` LIMIT $2;`
-			rows, err = DB.Query(sqlStatement, thread.Uid, limit)
-		}
-		fmt.Println(sqlStatement, thread.Uid, since, limit)
-	}
-	case "parent_tree": {
-		strLimit := strconv.FormatInt(int64(limit), 10)
-		sqlStatement += `WHERE p.thread_id = $1 AND p.path[1] IN ( 
-							SELECT uid FROM post WHERE thread_id = $1 `
-		if since > 0 {
+	case "tree":
+		{
+			sqlStatement += ` WHERE p.thread_id = $1 AND p.path `
 			if desc {
-				sqlStatement += ` AND uid < `
+				if since == 0 {
+					sqlStatement += ` >= ARRAY(SELECT uid FROM post ORDER BY uid ASC LIMIT 1)`
+				} else {
+					sqlStatement += ` < (SELECT path FROM post WHERE uid = $2) `
+				}
 			} else {
-				sqlStatement += ` AND uid > `
+				if since == 0 {
+					sqlStatement += ` >= ARRAY(SELECT uid FROM post ORDER BY uid ASC LIMIT 1)`
+				} else {
+					sqlStatement += ` > (SELECT path FROM post WHERE uid = $2) `
+
+				}
 			}
-			sqlStatement += ` (SELECT path[1] FROM post WHERE uid = $2) `
-		}
-		sqlStatement += ` AND array_length(path, 1) = 1 `
-		if desc {
-			sqlStatement += `ORDER BY path[1] DESC LIMIT ` + strLimit + `) ORDER BY p.path[1] DESC, p.path;`
-		} else {
-			sqlStatement += `ORDER BY path[1] LIMIT ` + strLimit + `) ORDER BY p.path;`
-		}
-		//fmt.Println(sqlStatement, thread.Uid, since)
-		if since > 0 {
-			rows, err = DB.Query(sqlStatement, thread.Uid, since)
-		} else {
-			rows, err = DB.Query(sqlStatement, thread.Uid)
-		}
-	}
-	default: {
-		if desc {
-			sqlStatement += ` WHERE p.thread_id = $1 `
+			if desc {
+				sqlStatement += `ORDER BY p.path DESC, p.created DESC`
+			} else {
+				sqlStatement += `ORDER BY p.path, p.created ASC`
+			}
+			//fmt.Println(sqlStatement, thread.Uid, since)
 			if since > 0 {
-				sqlStatement += ` AND p.uid < $2 ORDER BY p.created DESC, p.uid DESC LIMIT $3;`
+				sqlStatement += ` LIMIT $3;`
 				rows, err = DB.Query(sqlStatement, thread.Uid, since, limit)
 			} else {
-				sqlStatement += `ORDER BY p.created DESC, p.uid DESC LIMIT $2;`
+				sqlStatement += ` LIMIT $2;`
 				rows, err = DB.Query(sqlStatement, thread.Uid, limit)
 			}
-		} else {
-			sqlStatement += ` WHERE p.thread_id = $1 AND p.uid > $2 ORDER BY p.created, p.uid ASC LIMIT $3;`
-			rows, err = DB.Query(sqlStatement, thread.Uid, since, limit)
+			fmt.Println(sqlStatement, thread.Uid, since, limit)
 		}
-	}
+	case "parent_tree":
+		{
+			strLimit := strconv.FormatInt(int64(limit), 10)
+			sqlStatement += `WHERE p.thread_id = $1 AND p.path[1] IN ( 
+							SELECT uid FROM post WHERE thread_id = $1 `
+			if since > 0 {
+				if desc {
+					sqlStatement += ` AND uid < `
+				} else {
+					sqlStatement += ` AND uid > `
+				}
+				sqlStatement += ` (SELECT path[1] FROM post WHERE uid = $2) `
+			}
+			sqlStatement += ` AND array_length(path, 1) = 1 `
+			if desc {
+				sqlStatement += `ORDER BY path[1] DESC LIMIT ` + strLimit + `) ORDER BY p.path[1] DESC, p.path;`
+			} else {
+				sqlStatement += `ORDER BY path[1] LIMIT ` + strLimit + `) ORDER BY p.path;`
+			}
+			//fmt.Println(sqlStatement, thread.Uid, since)
+			if since > 0 {
+				rows, err = DB.Query(sqlStatement, thread.Uid, since)
+			} else {
+				rows, err = DB.Query(sqlStatement, thread.Uid)
+			}
+		}
+	default:
+		{
+			if desc {
+				sqlStatement += ` WHERE p.thread_id = $1 `
+				if since > 0 {
+					sqlStatement += ` AND p.uid < $2 ORDER BY p.created DESC, p.uid DESC LIMIT $3;`
+					rows, err = DB.Query(sqlStatement, thread.Uid, since, limit)
+				} else {
+					sqlStatement += `ORDER BY p.created DESC, p.uid DESC LIMIT $2;`
+					rows, err = DB.Query(sqlStatement, thread.Uid, limit)
+				}
+			} else {
+				sqlStatement += ` WHERE p.thread_id = $1 AND p.uid > $2 ORDER BY p.created, p.uid ASC LIMIT $3;`
+				rows, err = DB.Query(sqlStatement, thread.Uid, since, limit)
+			}
+		}
 	}
 	if err != nil {
 		return nil, err
@@ -381,7 +385,7 @@ func UpdateVote(slugOrId string, vote models.VoteInfo) (models.ThreadInfo, error
 	}
 	if err != nil {
 		return models.ThreadInfo{Uid: -1},
-		errors.New("Can't find thread by slug: " + slugOrId)
+			errors.New("Can't find thread by slug: " + slugOrId)
 	}
 
 	userId := int64(0)
@@ -399,7 +403,7 @@ func UpdateVote(slugOrId string, vote models.VoteInfo) (models.ThreadInfo, error
 	if err == pgx.ErrNoRows {
 		sqlStatement := `
 	INSERT INTO vote (user_id, thread_id, "value") VALUES ($1, $2, $3)`
-		_, err  = DB.Exec(sqlStatement, userId, thread.Uid, vote.Voice)
+		_, err = DB.Exec(sqlStatement, userId, thread.Uid, vote.Voice)
 		if err != nil {
 			return models.ThreadInfo{}, err
 		}
@@ -414,7 +418,7 @@ func UpdateVote(slugOrId string, vote models.VoteInfo) (models.ThreadInfo, error
 	}
 
 	sqlVote := `UPDATE vote SET "value" = $1, is_edited = true WHERE user_id = $2 AND thread_id = $3;`
-	_, err  = DB.Exec(sqlVote, vote.Voice, userId, thread.Uid)
+	_, err = DB.Exec(sqlVote, vote.Voice, userId, thread.Uid)
 	if err != nil {
 		return models.ThreadInfo{}, err
 	}

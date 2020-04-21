@@ -1,8 +1,8 @@
 package handlers
 
 import (
+	"db-park/db"
 	json "github.com/mailru/easyjson"
-	"github.com/rowbotman/db-forums/db"
 	//"encoding/json"
 	"fmt"
 	"github.com/naoina/denco"
@@ -41,6 +41,6 @@ func serviceGetInfo(w http.ResponseWriter, req *http.Request, _ denco.Params) {
 func ServiceHandler(router **denco.Mux) []denco.Handler {
 	fmt.Println("services handlers initialized")
 	return []denco.Handler{
-		(*router).POST("/api/service/clear",  serviceDrop),
-		(*router).GET( "/api/service/status", serviceGetInfo)}
+		(*router).POST("/api/service/clear", serviceDrop),
+		(*router).GET("/api/service/status", serviceGetInfo)}
 }

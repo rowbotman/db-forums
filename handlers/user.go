@@ -2,10 +2,10 @@ package handlers
 
 import (
 	json "github.com/mailru/easyjson"
+	"db-park/db"
+	"db-park/models"
 	//"encoding/json"
 	"fmt"
-	"github.com/rowbotman/db-forums/db"
-	"github.com/rowbotman/db-forums/models"
 	//"log"
 
 	//"github.com/go-zoo/bone"
@@ -23,7 +23,7 @@ func userGet(w http.ResponseWriter, req *http.Request, ps denco.Params) {
 	}
 	user, err := db.SelectUser(nickname)
 	if err != nil {
-		Get404(w, "Can't find user by nickname: " + nickname)
+		Get404(w, "Can't find user by nickname: "+nickname)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -32,7 +32,7 @@ func userGet(w http.ResponseWriter, req *http.Request, ps denco.Params) {
 	//_ = json.NewEncoder(w).Encode(user)
 }
 
-func userCreate(w http.ResponseWriter,req *http.Request, ps denco.Params) {
+func userCreate(w http.ResponseWriter, req *http.Request, ps denco.Params) {
 	//log.Println("user create", req.RequestURI)
 	//body, err := ioutil.ReadAll(req.Body)
 	//defer req.Body.Close()
@@ -133,8 +133,8 @@ func userPost(w http.ResponseWriter, req *http.Request, ps denco.Params) {
 func UserHandler(router **denco.Mux) []denco.Handler {
 	fmt.Println("user handlers initialized")
 	return []denco.Handler{
-		(*router).POST("/api/user/:nickname/create",  userCreate),
-		(*router).GET( "/api/user/:nickname/profile", userGet),
+		(*router).POST("/api/user/:nickname/create", userCreate),
+		(*router).GET("/api/user/:nickname/profile", userGet),
 		(*router).POST("/api/user/:nickname/profile", userPost),
 	}
 }

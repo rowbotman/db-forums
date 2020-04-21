@@ -1,9 +1,9 @@
 package db
 
 import (
+	"db-park/models"
 	"errors"
 	"github.com/jackc/pgx"
-	"github.com/rowbotman/db-forums/models"
 	//"gopkg.in/jackc/pgx.v2"
 	"strconv"
 )
@@ -176,7 +176,7 @@ func SelectForumThreads(slug string, limit int32, since string, desc bool) (mode
 	forum := ""
 	err := row.Scan(&forum)
 	if err == pgx.ErrNoRows {
-		return models.Threads{{Uid : -1}}, errors.New("Can't find forum by slug: " + slug)
+		return models.Threads{{Uid: -1}}, errors.New("Can't find forum by slug: " + slug)
 	} else if err != nil {
 		return nil, err
 	}

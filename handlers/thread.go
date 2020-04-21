@@ -2,18 +2,18 @@ package handlers
 
 import (
 	json "github.com/mailru/easyjson"
+	"db-park/db"
+	"db-park/models"
 	//"encoding/json"
 	"fmt"
 	"github.com/naoina/denco"
-	"github.com/rowbotman/db-forums/db"
-	"github.com/rowbotman/db-forums/models"
 	//"io/ioutil"
 	//"log"
 	"net/http"
 	"strconv"
 )
 
-func threadChangeInfo(w http.ResponseWriter,req *http.Request, ps denco.Params) {
+func threadChangeInfo(w http.ResponseWriter, req *http.Request, ps denco.Params) {
 	//log.Println("thread change info", req.RequestURI)
 	slugOrId := ps.Get("slug_or_id")
 	thread := models.ThreadInfo{}
@@ -48,7 +48,7 @@ func threadChangeInfo(w http.ResponseWriter,req *http.Request, ps denco.Params) 
 	_, _ = w.Write(output)
 }
 
-func threadCreate(w http.ResponseWriter,req *http.Request, ps denco.Params) {
+func threadCreate(w http.ResponseWriter, req *http.Request, ps denco.Params) {
 	//log.Println("thread create", req.RequestURI)
 	slugOrId := ps.Get("slug_or_id")
 	data := models.Posts{}
@@ -88,7 +88,7 @@ func threadCreate(w http.ResponseWriter,req *http.Request, ps denco.Params) {
 	//_ = json.NewEncoder(w).Encode(forum)
 }
 
-func threadGetInfo(w http.ResponseWriter,req *http.Request, ps denco.Params) {
+func threadGetInfo(w http.ResponseWriter, req *http.Request, ps denco.Params) {
 	//log.Println("thread get info", req.RequestURI)
 	slugOrId := ps.Get("slug_or_id")
 	_, err := strconv.ParseInt(slugOrId, 10, 64)
@@ -117,7 +117,6 @@ func threadGetInfo(w http.ResponseWriter,req *http.Request, ps denco.Params) {
 	w.Header().Set("content-type", "application/json")
 	_, _ = w.Write(output)
 }
-
 
 func threadGetPosts(w http.ResponseWriter, req *http.Request, ps denco.Params) {
 	//log.Println("thread get posts:", req.RequestURI)
@@ -169,7 +168,7 @@ func threadGetPosts(w http.ResponseWriter, req *http.Request, ps denco.Params) {
 	//_, _ = w.Write(output)
 }
 
-func threadVote(w http.ResponseWriter,req *http.Request, ps denco.Params) {
+func threadVote(w http.ResponseWriter, req *http.Request, ps denco.Params) {
 	//log.Println("thread vote", req.RequestURI)
 	slugOrId := ps.Get("slug_or_id")
 	//body, err := ioutil.ReadAll(req.Body)
@@ -199,14 +198,14 @@ func threadVote(w http.ResponseWriter,req *http.Request, ps denco.Params) {
 	}
 
 	threadData := models.FullThreadInfo{
-		"author" : thread.Author,
+		"author":  thread.Author,
 		"created": thread.Created,
-		"forum"  : thread.Forum,
-		"id"     : thread.Uid,
+		"forum":   thread.Forum,
+		"id":      thread.Uid,
 		"message": thread.Message,
-		"slug"   : thread.Slug,
-		"title"  : thread.Title,
-		"votes"  : thread.Votes,
+		"slug":    thread.Slug,
+		"title":   thread.Title,
+		"votes":   thread.Votes,
 	}
 
 	output, err := json.Marshal(threadData)
@@ -222,9 +221,9 @@ func threadVote(w http.ResponseWriter,req *http.Request, ps denco.Params) {
 func ThreadHandler(router **denco.Mux) []denco.Handler {
 	fmt.Println("threads handlers initialized")
 	return []denco.Handler{
-		(*router).POST("/api/thread/:slug_or_id/create",  threadCreate),
-		(*router).GET( "/api/thread/:slug_or_id/details", threadGetInfo),
+		(*router).POST("/api/thread/:slug_or_id/create", threadCreate),
+		(*router).GET("/api/thread/:slug_or_id/details", threadGetInfo),
 		(*router).POST("/api/thread/:slug_or_id/details", threadChangeInfo),
-		(*router).GET( "/api/thread/:slug_or_id/posts",   threadGetPosts),
-		(*router).POST("/api/thread/:slug_or_id/vote",    threadVote)}
+		(*router).GET("/api/thread/:slug_or_id/posts", threadGetPosts),
+		(*router).POST("/api/thread/:slug_or_id/vote", threadVote)}
 }

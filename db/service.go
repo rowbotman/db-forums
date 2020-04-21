@@ -1,6 +1,6 @@
 package db
 
-import "github.com/rowbotman/db-forums/models"
+import "db-park/models"
 
 func ServiceGet() (models.ServiceInfo, error) {
 	sqlStatement := `SELECT COUNT(*) FROM profile`
@@ -26,7 +26,6 @@ func ServiceGet() (models.ServiceInfo, error) {
 	}
 	return info, nil
 }
-
 
 func ClearService() bool {
 	sqlStatement := `TRUNCATE TABLE profile, forum, thread, post, vote, forum_meta CASCADE;`

@@ -1,12 +1,12 @@
 package handlers
 
 import (
+	"db-park/db"
+	"db-park/models"
 	"fmt"
 	//"encoding/json"
 	json "github.com/mailru/easyjson"
 	"github.com/naoina/denco"
-	"github.com/rowbotman/db-forums/db"
-	"github.com/rowbotman/db-forums/models"
 	//"log"
 	"net/http"
 	"strconv"
@@ -33,7 +33,7 @@ func PostChangeInfo(w http.ResponseWriter, req *http.Request, ps denco.Params) {
 	data.Id = id
 	forum, err := db.UpdatePost(data)
 	if err != nil {
-		if forum.Uid == -1  {
+		if forum.Uid == -1 {
 			Get404(w, err.Error())
 			return
 		}
@@ -83,5 +83,5 @@ func PostHandler(router **denco.Mux) []denco.Handler {
 	fmt.Println("posts handlers initialized")
 	return []denco.Handler{
 		(*router).POST("/api/post/:id/details", PostChangeInfo),
-		(*router).GET( "/api/post/:id/details", PostGetInfo)}
+		(*router).GET("/api/post/:id/details", PostGetInfo)}
 }

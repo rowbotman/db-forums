@@ -1,10 +1,10 @@
 package main
 
 import (
+	"db-park/db"
+	"db-park/handlers"
 	"github.com/jackc/pgx"
 	"github.com/naoina/denco"
-	"github.com/rowbotman/db-forums/db"
-	"github.com/rowbotman/db-forums/handlers"
 	//"gopkg.in/jackc/pgx.v2"
 	"log"
 	"net/http"

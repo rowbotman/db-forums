@@ -1,11 +1,11 @@
 package handlers
 
 import (
+	"db-park/db"
+	"db-park/models"
 	"fmt"
 	json "github.com/mailru/easyjson"
 	"github.com/naoina/denco"
-	"github.com/rowbotman/db-forums/db"
-	"github.com/rowbotman/db-forums/models"
 	//"io/ioutil"
 	//"log"
 	"net/http"
@@ -36,7 +36,7 @@ func forumCreate(w http.ResponseWriter, req *http.Request, _ denco.Params) {
 	//_ = json.NewEncoder(w).Encode(forum)
 }
 
-func forumGetInfo(w http.ResponseWriter,req *http.Request, ps denco.Params) {
+func forumGetInfo(w http.ResponseWriter, req *http.Request, ps denco.Params) {
 	//log.Println("forum get info", req.RequestURI)
 	forumSlug := ps.Get("slug")
 	if len(forumSlug) <= 0 {
@@ -104,7 +104,7 @@ func forumGetUsers(w http.ResponseWriter, req *http.Request, ps denco.Params) {
 	_, _ = w.Write(output)
 }
 
-func forumGetThreads(w http.ResponseWriter,req *http.Request, ps denco.Params) {
+func forumGetThreads(w http.ResponseWriter, req *http.Request, ps denco.Params) {
 	////log.Println("forum get threads:", req.RequestURI)
 	slugOrId := ps.Get("slug")
 	var err error
@@ -146,7 +146,7 @@ func forumGetThreads(w http.ResponseWriter,req *http.Request, ps denco.Params) {
 	_, _ = w.Write(output)
 }
 
-func forumCreateThread(w http.ResponseWriter,req *http.Request, ps denco.Params) {
+func forumCreateThread(w http.ResponseWriter, req *http.Request, ps denco.Params) {
 	//log.Println("forum create thread", req.RequestURI)
 	slugOrId := ps.Get("slug")
 	data := models.ThreadInfo{}
@@ -169,7 +169,7 @@ func forumCreateThread(w http.ResponseWriter,req *http.Request, ps denco.Params)
 	}
 	thread, err := db.InsertIntoThread(slugOrId, data)
 	if err != nil {
-		if  err.Error() == "thread exist" {
+		if err.Error() == "thread exist" {
 			output := []byte{}
 			if isMin {
 				output, err = json.Marshal(models.ThreadInfoMin{
@@ -191,7 +191,7 @@ func forumCreateThread(w http.ResponseWriter,req *http.Request, ps denco.Params)
 			_, _ = w.Write(output)
 			return
 		}
-		
+
 		if thread.Uid < 0 {
 			Get404(w, err.Error())
 			return
@@ -222,14 +222,12 @@ func forumCreateThread(w http.ResponseWriter,req *http.Request, ps denco.Params)
 	_, _ = w.Write(output)
 }
 
-
 func ForumHandler(router **denco.Mux) []denco.Handler {
 	fmt.Println("forums handlers initialized")
 	return []denco.Handler{
-		(*router).POST("/api/forum/create",        forumCreate),
-		(*router).GET( "/api/forum/:slug/details", forumGetInfo),
-		(*router).POST("/api/forum/:slug/create",  forumCreateThread),
-		(*router).GET( "/api/forum/:slug/users",   forumGetUsers),
-		(*router).GET( "/api/forum/:slug/threads", forumGetThreads)}
+		(*router).POST("/api/forum/create", forumCreate),
+		(*router).GET("/api/forum/:slug/details", forumGetInfo),
+		(*router).POST("/api/forum/:slug/create", forumCreateThread),
+		(*router).GET("/api/forum/:slug/users", forumGetUsers),
+		(*router).GET("/api/forum/:slug/threads", forumGetThreads)}
 }
-
