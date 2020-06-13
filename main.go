@@ -1,62 +1,29 @@
 package main
 
 import (
-	"db-park/db"
-	"db-park/handlers"
-	"github.com/jackc/pgx"
-	"github.com/naoina/denco"
-	//"gopkg.in/jackc/pgx.v2"
+	"forum/routes"
+	"github.com/dimfeld/httptreemux"
 	"log"
 	"net/http"
 )
 
-const (
-	host     = "localhost"
-	port     = 5432
-	user     = "park"
-	password = "admin"
-	dbname   = "park_forum"
-)
-
 func main() {
-	//log.SetFlags(log.LstdFlags | log.Lmicroseconds)
-	pgxConfig := pgx.ConnConfig{
-		Host:     host,
-		Port:     port,
-		Database: dbname,
-		User:     user,
-		Password: password,
+	router := httptreemux.New()
+
+	routes.SetHomeRouter(router)
+	routes.SetForumRouter(router)
+	routes.SetServiceRouter(router)
+	routes.SetPostRouter(router)
+	routes.SetThreadRouter(router)
+	routes.SetUserRouter(router)
+
+	server := http.Server{
+		Addr:    ":5000",
+		Handler: router,
 	}
-	pgxConnPoolConfig := pgx.ConnPoolConfig{
-		ConnConfig: pgxConfig,
-	}
-	var err error
-	db.DB, err = pgx.NewConnPool(pgxConnPoolConfig)
+
+	err := server.ListenAndServe()
 	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.DB.Close()
-
-	router := denco.NewMux()
-	handlerArray := handlers.UserHandler(&router)
-	for _, elem := range handlers.ForumHandler(&router) {
-		handlerArray = append(handlerArray, elem)
-	}
-	for _, elem := range handlers.PostHandler(&router) {
-		handlerArray = append(handlerArray, elem)
-	}
-	for _, elem := range handlers.ServiceHandler(&router) {
-		handlerArray = append(handlerArray, elem)
-	}
-	for _, elem := range handlers.ThreadHandler(&router) {
-		handlerArray = append(handlerArray, elem)
-	}
-
-	handler, err := router.Build(handlerArray)
-	http.Handle("/", handler)
-
-	err = http.ListenAndServe(":5000", handler)
-	if err != nil {
-		log.Fatal("ListenAndServe: ", err)
+		log.Fatal(err.Error())
 	}
 }

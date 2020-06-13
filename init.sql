@@ -1,261 +1,154 @@
--- CREATE DATABASE park_forum WITH OWNER = postgres;
+DROP TABLE IF EXISTS forum_users;
+DROP TABLE IF EXISTS votes;
+DROP TABLE IF EXISTS posts;
+DROP TABLE IF EXISTS threads;
+DROP TABLE IF EXISTS forums;
+DROP TABLE IF EXISTS users;
 
 CREATE EXTENSION IF NOT EXISTS CITEXT;
-DROP INDEX IF EXISTS forum_slug_idx;
-DROP INDEX IF EXISTS profile_nick_idx;
-DROP INDEX IF EXISTS profile_email_idx;
-DROP INDEX IF EXISTS vote_id_thread_idx;
-DROP INDEX IF EXISTS thread_userid_idx;
-DROP INDEX IF EXISTS thread_forumid_idx;
-DROP INDEX IF EXISTS post_path_idx;
-DROP INDEX IF EXISTS forum_id_idx;
-DROP INDEX IF EXISTS thread_id_idx;
-DROP INDEX IF EXISTS post_id_idx;
-DROP INDEX IF EXISTS post_forumid_idx;
 
-TRUNCATE TABLE profile, forum, thread, vote, post, forum_meta CASCADE;
-DROP TABLE     IF EXISTS vote             CASCADE;
-DROP TABLE     IF EXISTS post             CASCADE;
-DROP TABLE     IF EXISTS thread           CASCADE;
-DROP TABLE     IF EXISTS forum            CASCADE;
-DROP TABLE     IF EXISTS profile          CASCADE;
-DROP TABLE     IF EXISTS forum_meta;
-DROP TRIGGER   IF EXISTS t_vote           ON vote;
-DROP TRIGGER   IF EXISTS t_post           ON post;
-DROP TRIGGER   IF EXISTS t_forum_meta     ON post;
-DROP TRIGGER   IF EXISTS t_add_forum      ON forum;
-DROP FUNCTION  IF EXISTS add_to_thread();
-DROP FUNCTION  IF EXISTS clear_post_count();
-DROP PROCEDURE IF EXISTS inc_posts(fid INT, new_posts BIGINT);
-DROP PROCEDURE IF EXISTS inc_threads(fid INT);
-DROP FUNCTION  IF EXISTS add_path();
-
--- DROP TABLE IF EXISTS  CASCADE;
-
--- CREATE ROLE park_forum;
--- CREATE USER park WITH SUPERUSER PASSWORD 'admin';
-
-CREATE UNLOGGED TABLE IF NOT EXISTS profile
+CREATE TABLE users
 (
-  uid       SERIAL                                              PRIMARY KEY,
-  nickname  CITEXT       UNIQUE NOT NULL CHECK (nickname <> ''),
-  full_name VARCHAR(128)        NOT NULL CHECK (nickname <> ''),
-  about     VARCHAR(512)                                         DEFAULT '',
-  email     VARCHAR(256) UNIQUE NOT NULL CHECK (email <> '')
---   email     CITEXT UNIQUE       NOT NULL CHECK (email <> '')
-) WITH (autovacuum_enabled = off);
+  id  SERIAL PRIMARY KEY,
+  about TEXT,
+  email CITEXT UNIQUE NOT NULL,
+  fullname VARCHAR(256) NOT NULL,
+  nickname CITEXT UNIQUE NOT NULL
+);
 
-CREATE UNLOGGED TABLE IF NOT EXISTS forum
+CREATE INDEX IF NOT EXISTS users_nickname_and_email ON users (nickname, email);
+
+CREATE TABLE forums
 (
-  uid       SERIAL                                          PRIMARY KEY,
-  title     VARCHAR(128)        NOT NULL CHECK ( title <> '' ),
-  author_id INT                 NOT NULL,
---   slug      CITEXT       UNIQUE NOT NULL,
-  slug      VARCHAR(256) UNIQUE NOT NULL,
-  FOREIGN   KEY (author_id) REFERENCES profile (uid) -- попробовать убрать
-) WITH (autovacuum_enabled = off);
+  id SERIAL PRIMARY KEY,
+  posts BIGINT NOT NULL DEFAULT 0,
+  slug CITEXT UNIQUE NOT NULL,
+  threads INT NOT NULL DEFAULT 0,
+  title TEXT NOT NULL,
+  author CITEXT NOT NULL REFERENCES users (nickname)
+);
 
-CREATE UNLOGGED TABLE IF NOT EXISTS forum_meta
+CREATE INDEX IF NOT EXISTS forums_slug ON forums USING hash (slug);
+
+CREATE TABLE forum_users
 (
-    forum_id     INT NOT NULL REFERENCES forum(uid),
-    post_count   BIGINT DEFAULT 0,
-    user_count   BIGINT DEFAULT 0,
-    thread_count BIGINT DEFAULT 0
-) WITH (autovacuum_enabled = off);
+  fUser CITEXT COLLATE ucs_basic NOT NULL,
+  forum CITEXT NOT NULL
+);
 
+CREATE UNIQUE INDEX IF NOT EXISTS f_users_ind ON forum_users (forum, fUser);
+CREATE INDEX  IF NOT EXISTS forum_users_fuser ON forum_users (fUser);
 
-CREATE UNLOGGED TABLE IF NOT EXISTS thread
+-- TODO add forum's id
+CREATE TABLE threads
 (
-  uid      SERIAL                                            PRIMARY KEY,
-  user_id  INT                         NOT NULL,
-  forum_id INT                         NOT NULL,
-  title    VARCHAR(128)                NOT NULL CHECK ( title <> '' ),
---   slug     CITEXT       UNIQUE         NOT NULL,
-  slug     CITEXT UNIQUE         ,
-  message  VARCHAR(2048)               NOT NULL,
-  created  TIMESTAMP(3) WITH TIME ZONE NOT NULL DEFAULT current_timestamp,
-  votes    INT                         NOT NULL DEFAULT 0,
+  author CITEXT NOT NULL REFERENCES users (nickname),
+  created TIMESTAMP(3) WITH TIME ZONE NOT NULL DEFAULT current_timestamp,
+  forum CITEXT NOT NULL ,
+  id SERIAL PRIMARY KEY,
+  message TEXT NOT NULL,
+  slug CITEXT UNIQUE,
+  title TEXT,
+  votes INT NOT NULL DEFAULT 0
+);
 
-  FOREIGN  KEY (user_id)  REFERENCES profile (uid),
-  FOREIGN  KEY (forum_id) REFERENCES forum   (uid)
-) WITH (autovacuum_enabled = off);
+CREATE INDEX IF NOT EXISTS threads_id ON threads (id);
+CREATE INDEX IF NOT EXISTS threads_slug_and_id ON threads (slug, id);
+CREATE INDEX IF NOT EXISTS threads_created ON threads (created);
+CREATE INDEX IF NOT EXISTS threads_forum_created ON threads (forum, created);
 
-CREATE UNLOGGED TABLE IF NOT EXISTS post
+CREATE TABLE posts
 (
-  uid       SERIAL                                          PRIMARY KEY,
-  parent_id INT                          NOT NULL DEFAULT 0,
-  path      INTEGER[]                    NOT NULL,
-  forum_id  INT                          NOT NULL,
-  user_id   INT                          NOT NULL,
-  thread_id INT                          NOT NULL,
-  message   VARCHAR(2048)                NOT NULL,
-  is_edited BOOLEAN                               DEFAULT FALSE,
-  created   TIMESTAMP(3)  WITH TIME ZONE NOT NULL DEFAULT current_timestamp,
-  author    CITEXT                       DEFAULT NULL
---   FOREIGN   KEY (forum_id)  REFERENCES forum   (uid),
---   FOREIGN   KEY (user_id)   REFERENCES profile (uid)
---   FOREIGN   KEY (parent_id) REFERENCES post    (uid),
---   FOREIGN   KEY (thread_id) REFERENCES thread  (uid)
-) WITH (autovacuum_enabled = off);
+  id SERIAL PRIMARY KEY,
+  author CITEXT NOT NULL REFERENCES users (nickname),
+  created TIMESTAMP(3) WITH TIME ZONE NOT NULL DEFAULT current_timestamp,
+  forum CITEXT NOT NULL,
+  isEdited BOOLEAN DEFAULT FALSE,
+  message TEXT NOT NULL,
+  parent INT DEFAULT 0,
+  tid INT NOT NULL REFERENCES threads (id),
+  slug INTEGER[] NOT NULL,
+  rootId INT
+);
 
-CREATE UNLOGGED TABLE IF NOT EXISTS vote
+CREATE INDEX IF NOT EXISTS posts_id ON posts (id);
+CREATE INDEX IF NOT EXISTS posts_tid_and_slug ON posts (tid, slug);
+CREATE INDEX IF NOT EXISTS posts_tid_and_id ON posts (tid, id);
+CREATE INDEX IF NOT EXISTS posts_tid_parent_id ON posts (tid, parent, id);
+CREATE INDEX IF NOT EXISTS posts_root_id_slug ON posts (rootId, slug);
+CREATE INDEX IF NOT EXISTS posts_slug ON posts (slug);
+
+CREATE TABLE votes
 (
-  user_id   INT           NOT NULL,
-  thread_id INT           NOT NULL,
-  value     SMALLINT      NOT NULL   DEFAULT 0,
-  is_edited BOOLEAN       NOT NULL   DEFAULT FALSE,
+  nickname CITEXT NOT NULL REFERENCES users (nickname),
+  tid INT NOT NULL,
+  voice INT NOT NULL
+);
 
-  FOREIGN KEY (user_id)   REFERENCES profile (uid) ON DELETE CASCADE,
-  FOREIGN KEY (thread_id) REFERENCES thread  (uid) ON DELETE CASCADE
-) WITH (autovacuum_enabled = off);
+CREATE UNIQUE INDEX IF NOT EXISTS votes_ind ON votes (tid, nickname);
 
+DROP TRIGGER IF EXISTS vote_insertion ON votes;
+DROP TRIGGER IF EXISTS vote_updating ON votes;
+DROP TRIGGER IF EXISTS add_root_id ON posts;
+DROP TRIGGER IF EXISTS thread_insertion ON threads;
+DROP TRIGGER IF EXISTS new_thread_author ON threads;
 
-CREATE OR REPLACE FUNCTION add_to_thread() RETURNS TRIGGER AS $$
-DECLARE
-  old_value  INTEGER;
+CREATE OR REPLACE FUNCTION insert_vote() RETURNS TRIGGER AS
+$vote_insertion$
 BEGIN
-  --
-  -- Добавление строки в emp_audit, которая отражает операцию, выполняемую в emp;
-  -- для определения типа операции применяется специальная переменная TG_OP.
-  --
-  SELECT t.votes INTO old_value FROM thread AS t WHERE t.uid = NEW.thread_id;
-  IF (TG_OP = 'UPDATE') THEN
-    UPDATE thread
-    SET votes = old_value + NEW.value - OLD.value
-    WHERE thread.uid = NEW.thread_id;
+  UPDATE threads
+  SET votes = votes + new.voice
+    WHERE id = new.tid;
     RETURN NEW;
-  ELSIF (TG_OP = 'INSERT') THEN
-    UPDATE thread
-    SET votes = old_value + NEW.value
-    WHERE thread.uid = NEW.thread_id;
-    RETURN NEW;
-  END IF;
-  RETURN NULL; -- возвращаемое значение для триггера AFTER игнорируется
 END;
-$$ LANGUAGE plpgsql;
+$vote_insertion$
+LANGUAGE plpgsql;
 
-
-CREATE OR REPLACE FUNCTION add_path() RETURNS TRIGGER AS $$
-    DECLARE
-        new_path INTEGER[];
-    BEGIN
-        SELECT "path" INTO new_path FROM post p WHERE p.uid = NEW.parent_id;
-        IF (TG_OP = 'INSERT') THEN
-            UPDATE post
-            SET path = array_append(new_path, NEW.uid)
-            WHERE uid = NEW.uid;
-            RETURN NEW;
-
-        END IF;
-    RETURN NULL; -- возвращаемое значение для триггера AFTER игнорируется
-    END;
-$$ LANGUAGE plpgsql;
-
-CREATE OR REPLACE PROCEDURE inc_posts(fid INT, new_posts BIGINT)
-LANGUAGE plpgsql AS $$
+CREATE OR REPLACE FUNCTION update_vote() RETURNS TRIGGER AS
+$vote_updating$
 BEGIN
-    -- subtracting the amount from the sender's account
-    UPDATE forum_meta
-    SET post_count = post_count + new_posts
-    WHERE forum_id = fid;
-    COMMIT;
+  UPDATE threads
+    SET votes = votes - OLD.voice + NEW.voice
+    WHERE id = new.tid;
+  RETURN NEW;
 END;
-$$;
+$vote_updating$
+LANGUAGE plpgsql;
 
-CREATE OR REPLACE PROCEDURE inc_threads(fid INT)
-    LANGUAGE plpgsql AS $$
+CREATE OR REPLACE FUNCTION init_post() RETURNS TRIGGER AS
+$add_root_id$
 BEGIN
-    -- subtracting the amount from the sender's account
-    UPDATE forum_meta
-    SET thread_count = thread_count + 1
-    WHERE forum_id = fid;
-    COMMIT;
+  UPDATE forums
+    SET posts = posts + 1
+    WHERE slug = new.forum;
+  INSERT INTO forum_users VALUES (new.author, new.forum) ON CONFLICT DO NOTHING;
+  RETURN new;
 END;
-$$;
+$add_root_id$
+LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION clear_post_count() RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION inc_threads() RETURNS TRIGGER AS
+$thread_insertion$
 BEGIN
-    IF (TG_OP = 'DELETE') THEN
-        UPDATE forum_meta
-        SET post_count = post_count - 1
-        WHERE forum_id = OLD.uid;
-        RETURN NULL;
-    END IF;
-    RETURN NULL; -- возвращаемое значение для триггера AFTER игнорируется
+  UPDATE forums
+    SET threads = threads + 1
+    WHERE slug = new.forum;
+  RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$thread_insertion$
+LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION add_forum() RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION add_forum_user() RETURNS TRIGGER AS
+$$
 BEGIN
-    IF (TG_OP = 'INSERT') THEN
-        INSERT INTO forum_meta VALUES(NEW.uid, DEFAULT, DEFAULT);
-        RETURN NULL;
-    END IF;
-    RETURN NULL; -- возвращаемое значение для триггера AFTER игнорируется
+  INSERT INTO forum_users VALUES (new.author, new.forum) ON CONFLICT DO NOTHING;
+  RETURN new;
 END;
-$$ LANGUAGE plpgsql;
+$$
+LANGUAGE plpgsql;
 
-CREATE TRIGGER t_vote
-  AFTER INSERT OR UPDATE OR DELETE ON vote
-  FOR EACH ROW EXECUTE PROCEDURE add_to_thread ();
-
-CREATE TRIGGER t_post
-  AFTER INSERT ON post
-  FOR EACH ROW EXECUTE PROCEDURE add_path ();
-
-CREATE TRIGGER t_forum_meta
-    AFTER DELETE ON post
-    FOR EACH ROW EXECUTE PROCEDURE clear_post_count ();
-
-CREATE TRIGGER t_add_forum
-    AFTER INSERT ON forum
-    FOR EACH ROW EXECUTE FUNCTION add_forum();
-
--- forum uid = +2
--- forum lower(slug) =  +5
--- thread forum_id = +2
--- thread lower(slug) = +2
--- thread uid = +4
--- profile nickname = +5
--- post uid +5
--- thread uid and post path >/>= +1
--- thread uid = and post uid (mb and post uid >/< path[1])
--- thread uid = and post >/< +2
--- vote user_id = and thread_id = +1
--- profile lower(nickname) = or lower(email) = +1
--- profile lower(email) = +1
-
-
-CREATE INDEX IF NOT EXISTS forum_slug_idx        ON forum(LOWER(slug));
-CREATE INDEX IF NOT EXISTS forum_id_idx          ON forum(uid);
-CREATE INDEX IF NOT EXISTS forum_authorid_idx    ON forum(author_id);
-CREATE INDEX IF NOT EXISTS profile_nick_idx      ON profile(nickname);
-CREATE INDEX IF NOT EXISTS profile_email_idx     ON profile(LOWER(email));
-CREATE INDEX IF NOT EXISTS profile_lownick_idx   ON profile(LOWER(nickname));
-CREATE INDEX IF NOT EXISTS profile_id_idx        ON profile(uid); -- ?
-CREATE INDEX IF NOT EXISTS thread_userid_idx     ON thread(user_id);
-CREATE INDEX IF NOT EXISTS thread_forumid_idx    ON thread(forum_id);
-CREATE INDEX IF NOT EXISTS thread_slug_idx       ON thread USING HASH(LOWER(slug));
-CREATE INDEX IF NOT EXISTS thread_id_idx         ON thread(uid);
-CREATE INDEX IF NOT EXISTS post_forumid_idx      ON post(forum_id);
--- CREATE INDEX IF NOT EXISTS post_parentid_idx     ON post(parent_id);
-CREATE INDEX IF NOT EXISTS post_parentid_uid_idx ON post(parent_id, uid);
-CREATE INDEX IF NOT EXISTS post_threadpath_idx   ON post(thread_id, path);
-CREATE INDEX IF NOT EXISTS post_userid_idx       ON post(user_id);
-CREATE INDEX IF NOT EXISTS post_threadid_idx     ON post(thread_id);
--- CREATE INDEX IF NOT EXISTS post_id_idx           ON post(uid);
-CREATE INDEX IF NOT EXISTS post_pathcreated_idx  ON post(path, created);
-CREATE INDEX IF NOT EXISTS post_many_idx         ON post(thread_id, parent_id, uid);
-CREATE INDEX IF NOT EXISTS post_uid_withpath_idx ON post(uid) INCLUDE (path);
--- CREATE INDEX IF NOT EXISTS post_path_idx       ON post(path);
--- CREATE INDEX IF NOT EXISTS post_idincl_idx ON post(uid) INCLUDE (path, thread_id, forum_id);
-
-CREATE INDEX IF NOT EXISTS vote_id_thread_idx    ON vote(user_id, thread_id);
-
-CLUSTER post_id_idx ON post;
-
-GRANT ALL PRIVILEGES ON DATABASE park_forum TO park_forum;--why we granted privileges to park_forum if
-                                                          --db owner is postgres?
-GRANT USAGE ON SCHEMA public TO park_forum;
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO park_forum;
-GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO park_forum;
+CREATE TRIGGER vote_updating BEFORE UPDATE ON votes FOR EACH ROW EXECUTE PROCEDURE update_vote();
+CREATE TRIGGER vote_insertion BEFORE INSERT ON votes FOR EACH ROW EXECUTE PROCEDURE insert_vote();
+CREATE TRIGGER add_root_id AFTER INSERT ON posts FOR EACH ROW EXECUTE PROCEDURE init_post();
+CREATE TRIGGER thread_insertion AFTER INSERT ON threads FOR EACH ROW EXECUTE PROCEDURE inc_threads();
+CREATE TRIGGER new_thread_author AFTER INSERT ON threads FOR EACH ROW EXECUTE PROCEDURE add_forum_user();
